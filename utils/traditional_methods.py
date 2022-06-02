@@ -648,8 +648,12 @@ def calculate_mdmo(df, load_data):
             print(i, "/", df.shape[0])
         # calculate the feature_points for the first frame of the video
         img = video[..., 0]
-        rects = detector(img, 0)
-        shape = predictor(img, rects[0])
+        rects = detector(img, 2) if detector(img, 2) else detector(img, 3)
+        if rects:
+            shape = predictor(img, rects[0])
+        else:
+            shape = prev_shape
+        prev_shape = shape
         feature_points = shape2points(shape)
         # MDMO
         feature_rho, feature_theta = MDMO_video(video, feature_points)
