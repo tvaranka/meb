@@ -1,4 +1,5 @@
 import os
+import re
 from itertools import chain
 from experiments.config.dataset_config import config
 from typing import List, Tuple, Optional, Sequence, Union
@@ -98,7 +99,7 @@ class CustomDataset:
             if self.resize:
                 if isinstance(self.resize, int):
                     self.resize = (self.resize, self.resize)
-                image = sk_resize(image, (self.resize[0], self.resize[1]))
+                image = sk_resize(image, (self.resize[0], self.resize[1]), anti_aliasing=True)
                 image = (image * 255.0).astype("uint8")
             video[f] = image
 
@@ -121,13 +122,39 @@ def get_video_paths(format_path: str, df: pd.DataFrame) -> List[List[str]]:
             subject=row["subject"], emotion=row["emotion"], material=row["material"]
         )
         image_paths = os.listdir(video_path)
+        file_formats = ["jpg", "bmp", "png"]
+        image_paths = [image_path for image_path in image_paths if image_path[-3:] in file_formats]
         image_paths = [video_path + image_path for image_path in image_paths]
+        image_paths = sort_video_path(image_paths)
         video_paths.append(image_paths)
     return video_paths
 
 
+def sort_video_path(video_path: List[str]):
+    """
+    Video paths may be given in a random order on linux devices, where the frames are in
+    a random order. Sorts the frames to the correct order.
+    """
+    # Get the frame information by splitting with "/" and then taking the last part.
+    # Get only the digits and make it an int
+    # Use the i to get an index which is then used to sort the video path
+    #d = {}
+    #for i, data_path in enumerate(video_path):
+    #    frame_number = only_digit(data_path.split("/")[-1])
+    #    if frame_number:
+    #        d[i] = frame_number
+    d = {i: int(only_digit(data_path.split("/")[-1])) for i, data_path in enumerate(video_path)}
+    idx = list(dict(sorted(d.items(), key=lambda x: x[1])).keys())
+    # Use numpy array for convenient indexing
+    sorted_video_path = list(np.array(video_path)[idx])
+    return sorted_video_path
+
+
 def smic(
-    cropped: bool = True, color: bool = False, resize: Union[Sequence[int], int, None] = None
+    cropped: bool = True,
+    color: bool = False,
+    resize: Union[Sequence[int], int, None] = None,
+    optical_flow: bool = False
 ) -> Tuple[pd.DataFrame, CustomDataset]:
     """Returns a pandas dataframe with the metadata and an iterable object with the data."""
 
@@ -135,9 +162,14 @@ def smic(
         df = pd.read_excel(config.smic_excel_path)
         df = df.drop("Unnamed: 0", axis=1)
         df["n_frames"] = df["offset"] - df["onset"] + 1
+        # Set apex at the halfway of onset and offset
+        df["apex"] = df["onset"] + ((df["offset"] - df["onset"]) / 2).astype("int")
         return df
 
     def process_data(df: pd.DataFrame) -> CustomDataset:
+        if optical_flow:
+            of_frames = load_optical_flow_data("smic", resize=resize)
+            return of_frames
         dataset_path = (
             config.smic_cropped_dataset_path if cropped else config.smic_dataset_path
         )
@@ -152,7 +184,10 @@ def smic(
 
 
 def casme(
-    cropped: bool = True, color: bool = False, resize: Union[Sequence[int], int, None] = None
+    cropped: bool = True,
+    color: bool = False,
+    resize: Union[Sequence[int], int, None] = None,
+    optical_flow: bool = False
 ) -> Tuple[pd.DataFrame, CustomDataset]:
     def process_df() -> pd.DataFrame:
         df = pd.read_excel(config.casme_excel_path)
@@ -169,8 +204,8 @@ def casme(
         )
         df["subject"] = df["subject"].apply(lambda x: f"{x:02d}")
         # Fix mistakes in the files based on the image folders
-        df.loc[[40, 42, 43], "onset"] = [108, 101, 57]
-        df.loc[[40, 42, 43, 54], "offset"] = [149, 119, 74, 40]
+        df.loc[[40, 42, 43], "onset"] = [100, 101, 57]
+        df.loc[[40, 42, 43, 54, 140], "offset"] = [149, 119, 74, 40, 142]
         # Apex to middle frame
         df.loc[[40, 42, 43], "apex"] = [120, 110, 65]
 
@@ -179,6 +214,9 @@ def casme(
         return df
 
     def process_data(df: pd.DataFrame) -> CustomDataset:
+        if optical_flow:
+            of_frames = load_optical_flow_data("casme", resize=resize)
+            return of_frames
         dataset_path = (
             config.casme_cropped_dataset_path if cropped else config.casme_dataset_path
         )
@@ -193,7 +231,10 @@ def casme(
 
 
 def casme2(
-    cropped: bool = True, color: bool = False, resize: Union[Sequence[int], int, None] = None
+    cropped: bool = True,
+    color: bool = False,
+    resize: Union[Sequence[int], int, None] = None,
+    optical_flow: bool = False
 ) -> Tuple[pd.DataFrame, CustomDataset]:
     def process_df() -> pd.DataFrame:
         df = pd.read_excel(config.casme2_excel_path)
@@ -209,7 +250,6 @@ def casme2(
                 "Action Units": "AU",
             }
         )
-        df["n_frames"] = df["offset"] - df["onset"] + 1
         df["subject"] = df["subject"].apply(lambda x: f"{x:02d}")
         # Sample 222 in megc but not in individual casme2
         # df = df.drop(222).reset_index()
@@ -223,10 +263,14 @@ def casme2(
                             134, 231, 53, 329, 111, 91, 103, 98, 153, 98,
         ]
         df.loc[samples_missing_apex, "apex"] = estimated_apexes
+        df["n_frames"] = df["offset"] - df["onset"] + 1
         df = extract_action_units(df)
         return df
 
     def process_data(df: pd.DataFrame) -> CustomDataset:
+        if optical_flow:
+            of_frames = load_optical_flow_data("casme2", resize=resize)
+            return of_frames
         dataset_path = (
             config.casme2_cropped_dataset_path if cropped else config.casme2_dataset_path
         )
@@ -241,7 +285,10 @@ def casme2(
 
 
 def samm(
-    cropped: bool = True, color: bool = False, resize: Union[Sequence[int], int, None] = None
+    cropped: bool = True,
+    color: bool = False,
+    resize: Union[Sequence[int], int, None] = None,
+    optical_flow: bool = False
 ) -> Tuple[pd.DataFrame, CustomDataset]:
     def process_df() -> pd.DataFrame:
         df = pd.read_excel(config.samm_excel_path)
@@ -280,6 +327,9 @@ def samm(
         return df
 
     def process_data(df: pd.DataFrame) -> CustomDataset:
+        if optical_flow:
+            of_frames = load_optical_flow_data("samm", resize=resize)
+            return of_frames
         dataset_path = (
             config.samm_cropped_dataset_path if cropped else config.samm_dataset_path
         )
@@ -295,76 +345,33 @@ def samm(
 
 
 def fourDmicro(
-    cropped: bool = True, color: bool = False, resize: Union[Sequence[int], int, None] = None
+    cropped: bool = True,
+    color: bool = False,
+    resize: Union[Sequence[int], int, None] = None,
+    optical_flow: bool = False
 ) -> Tuple[pd.DataFrame, CustomDataset]:
     df = pd.read_excel(config.fourDmicro_excel_path)
-    df = df[:-1]
     df = df.rename(
         columns={
-            "sub_ID'": "subject",
-            "video_number'": "material",
-            "video emo'": "video_emotion",
-            "self-report emo'": "self-report emotion",
+            "sub_ID": "subject",
+            "fold_name": "material",
             "Emotion": "emotion",
             "Onset": "onset",
             "Apex": "apex",
             "Offset": "offset",
-            "Length": "n_frames",
             "AUs": "AU",
         }
     )
-    df.columns = [
-        column[:-1] if column.endswith("'") else column for column in df.columns
-    ]
-    df = df.apply(
-        lambda column: column.apply(
-            lambda x: str(x).replace("'", "") if "'" in str(x) else x
-        )
-    )
-    df = df.replace({"'": ""})
     df[["onset", "offset", "apex"]] = df[["onset", "offset", "apex"]].astype("int")
-    # Apex out of bounds
-    df.loc[26, "apex"] = 2490
-    df["apexf"] = df["apex"] - df["onset"] + 1
-    df = df[df.columns.tolist()[:11] + ["apexf"] + df.columns.tolist()[11:-1]]
-    df = df.replace(
-        {
-            "0'": "neutral",
-            "1'": "happy",
-            "1,3'": "happy + surprise",
-            "2'": "sad",
-            "3'": "surprise",
-            "4'": "fear",
-            "4,5'": "fear/disgust",
-            "5'": "disgust",
-        }
-    )
-    df["subME_number"] = df["subME_number"].astype("int").astype("str")
-    if cropped:
-        subjects = sorted(os.listdir(config.fourDmicro_cropped_dataset_path))
-    else:
-        subjects = sorted(os.listdir(config.fourDmicro_dataset_path))
-    subjects.remove("S13_1st_001_01_1")
+    df.insert(9, "apexf", df["apex"] - df["onset"] + 1)
+    df.insert(10, "n_frames",  df["offset"] - df["onset"] + 1)
+    #Switch 144 and 145
+    tmp = df.loc[144, "AU":]
+    df.loc[144, "AU":] = df.loc[145, "AU":]
+    df.loc[145, "AU":] = tmp
 
-    # df.loc[19, "subject"] = "S13_1st"
-    df["subject"] = [
-        subject[:-9] if not subject[:-9].endswith("_") else subject[:-10]
-        for subject in subjects
-    ]
-    df["material"] = [subject[-8:] for subject in subjects]
-    # Fix random dashes at the end of material
-    df["material"] = df["material"].apply(lambda x: "0" + x if x.endswith("-") else x)
-
-    df.loc[263, "emotion"] = "Surprise+Positive"
-    tmp = df.loc[145]
-    df.loc[145] = df.loc[144]
-    df.loc[144] = tmp
-    df.loc[245, "n_frames"] = 24
-    # Remove static(marked as (k) in the file) AUs
-    df.loc[77, "AU"] = df.loc[77, "AU"][:-1]
-    df.loc[124, "AU"] = "AU4(k)+L7"
-    df.loc[171, "AU"] = "AUR2+12(k)+45"
-    for i in range(267):
+    # Remove (k)s from data?
+    for i in range(df.shape[0]):
         a = [au[:-3] for au in df.loc[i, "AU"].split("+") if "(k)" in au]
         a = [au[2:] if "AU" in au else au for au in a]
         for au in a:
@@ -375,30 +382,20 @@ def fourDmicro(
         if cropped
         else config.fourDmicro_dataset_path
     )
-    format_path = dataset_path + "/{subject}_{material}/"
+    format_path = dataset_path + "/{subject}/{material}/"
     video_paths = get_video_paths(format_path, df)
+    if optical_flow:
+        of_frames = load_optical_flow_data("fourDmicro", resize=resize)
+        return df, of_frames
     dataset = CustomDataset(video_paths, color=color, resize=resize)
-
-    # Remove _1st and _2nd from df subjects
-    second_subjects_dict = {
-        "S13_1st": "S13",
-        "S13_2nd": "S13",
-        "S30_1st": "S30",
-        "S30_2nd": "S30",
-        "S49_2": "S49",
-        "S52_2": "S52",
-        "S52_2": "S52",
-        "S58_1": "S58",
-        "S58_2": "S58",
-        "S59_2,": "S59",
-    }
-    df["subject"] = df["subject"].replace(second_subjects_dict)
-
     return df, dataset
 
 
 def mmew(
-    cropped: bool = True, color: bool = False, resize: Optional[Sequence[int]] = None
+    cropped: bool = True,
+    color: bool = False,
+    resize: Union[Sequence[int], int, None] = None,
+    optical_flow: bool = False
 ) -> Tuple[pd.DataFrame, CustomDataset]:
     def process_df() -> pd.DataFrame:
         df = pd.read_excel(config.mmew_excel_path)
@@ -414,12 +411,20 @@ def mmew(
                 "Filename": "material",
             }
         )
+        # Incorrect apex and offset, change them
+        samples_missing_apex = [33, 35, 36, 37, 38, 39, 40, 41, 42, 142, 143, 145, 146, 148, 154, 156]
+        estimated_apexes = [40, 15, 46, 20, 25, 20, 23, 28, 32, 56, 32, 27, 22, 29, 31, 38]
+        estimated_offsets = [75, 54, 59, 98, 80, 93, 58, 61, 68, 88, 80, 85, 61, 108, 72, 106]
+        df.loc[samples_missing_apex, ["apex", "offset"]] = np.array([estimated_apexes, estimated_offsets]).T
         df = extract_action_units(df)
         df = df.replace({"others": "repression"})
         df["n_frames"] = df["offset"] - df["onset"] + 1
         return df
 
     def process_data(df: pd.DataFrame) -> CustomDataset:
+        if optical_flow:
+            of_frames = load_optical_flow_data("mmew", resize=resize)
+            return of_frames
         dataset_path = (
             config.mmew_cropped_dataset_path if cropped else config.mmew_dataset_path
         )
@@ -431,83 +436,6 @@ def mmew(
     df = process_df()
     dataset = process_data(df)
     return df, dataset
-
-
-def megc_old(
-    cropped: bool = True, color: bool = False, resize: Optional[Sequence[int]] = None
-) -> Tuple[pd.DataFrame, CustomDataset]:
-
-    df_samm, data_samm = samm(cropped=cropped, color=color, resize=resize)
-    df_casme2, data_casme2 = casme2(cropped=cropped, color=color, resize=resize)
-    df_smic, data_smic = smic(cropped=cropped, color=color, resize=resize)
-
-    # Add dataset information to each dataset
-    df_smic["dataset"] = "smic"
-    df_casme2["dataset"] = "casme2"
-    df_samm["dataset"] = "samm"
-
-    # Remove fear, sadness and others from casme2
-    indices = df_casme2[~df_casme2["emotion"].isin(["fear", "sadness", "others"])][
-        "emotion"
-    ].index.tolist()
-    data_casme2 = data_casme2[indices]
-    df_casme2 = df_casme2.loc[indices]
-    # Set the correct emotions
-    df_casme2.loc[
-        df_casme2["emotion"].isin(["disgust", "repression"]), "emotion"
-    ] = "negative"
-    df_casme2.loc[df_casme2["emotion"] == "happiness", "emotion"] = "positive"
-
-    # remove "others" from samm
-    indices2 = df_samm[df_samm["emotion"] != "Other"]["emotion"].index.tolist()
-    data_samm = data_samm[indices2]
-    df_samm = df_samm[df_samm["emotion"] != "Other"]
-    # Set the correct emotions
-    df_samm.loc[
-        df_samm["emotion"].isin(["Anger", "Contempt", "Disgust", "Sadness", "Fear"]),
-        "emotion",
-    ] = "negative"
-    df_samm.loc[df_samm["emotion"] == "Happiness", "emotion"] = "positive"
-    df_samm.loc[df_samm["emotion"] == "Surprise", "emotion"] = "surprise"
-
-    # merge dataframes and iterators
-    df = pd.concat([df_casme2, df_smic, df_samm], sort=True)
-    df = df.reset_index()
-    df = df.drop(
-        [
-            "Duration",
-            "Inducement Code",
-            "Micro",
-            "Notes",
-            "Objective Classes",
-            "level_0",
-            "index",
-        ],
-        axis=1,
-    )
-    columns_with_no_aus = [
-        column for column in df.columns if "au" not in column.lower()
-    ]
-    df = df[columns_with_no_aus]
-
-    # apex is the apex frame based on file number and apexf for image number in sequence
-    df.loc[df.index[df["apex"].isnull()], "apex"] = (
-        df[df["apex"].isnull()]["offset"] - df[df["apex"].isnull()]["onset"]
-    ) / 2
-    df["apexf"] = df["apex"] - df["onset"]
-    df.loc[df["dataset"] == "smic", "apexf"] = df.loc[df["dataset"] == "smic", "apex"]
-    df.loc[:, "apex"] = round(df["apex"].astype("float")).astype("int")
-    df.loc[:, "apexf"] = round(df["apexf"].astype("float")).astype("int")
-
-    # Drop some samples that are not part of MEGC
-    df = df.drop([17, 26, 130])
-    total_data_path = data_casme2.data_path + data_smic.data_path + data_samm.data_path
-    data = CustomDataset(total_data_path)
-    indices = df.index.tolist()
-    data = data[indices]
-    df = df.reset_index()
-
-    return df, data
 
 
 def megc(
@@ -556,7 +484,11 @@ def megc(
 
     def process_data() -> CustomDataset:
         if optical_flow:
-            of_frames = load_optical_flow_data(megc_datasets, resize=resize)
+            of_frames_list = []
+            for dataset in megc_datasets:
+                of_frames = dataset(cropped=cropped, color=color, resize=resize, optical_flow=optical_flow)[1]
+                of_frames_list.append(of_frames)
+            of_frames = np.concatenate(of_frames_list)
             return of_frames
         data_paths = [
             video_path
@@ -588,8 +520,7 @@ def cross_dataset(
         cross_dataset_dfs.append(df)
     df = pd.concat(cross_dataset_dfs, axis=0, sort=False)
     df = df.drop(["ApexF2", "index", "Inducement Code", "Duration", "Micro", "Objective Classes",
-                  "Notes", "fold", "ME_number", "subME_number", "first_frame", "last_frame", "video_emotion",
-                  "self-report emotion", "eye blink", "Positive", "Negative", "Surprise", "Repression", "Others",
+                  "Notes", "fold", "eye blink", "Positive", "Negative", "Surprise", "Repression", "Others",
                   "Onset", "Total", "apexf"
                   ], axis=1,
     )
@@ -609,7 +540,11 @@ def cross_dataset(
 
 
     if optical_flow:
-        of_frames = load_optical_flow_data(cross_datasets, resize=resize)
+        of_frames_list = []
+        for dataset in cross_datasets:
+            of_frames = dataset(cropped=cropped, color=color, resize=resize, optical_flow=optical_flow)[1]
+            of_frames_list.append(of_frames)
+        of_frames = np.concatenate(of_frames_list)
         return df, of_frames
 
     data_paths = [
@@ -622,7 +557,7 @@ def cross_dataset(
     return df, data
 
 
-def load_optical_flow_data(cross_datasets, resize):
+def load_optical_flow_data(dataset_name: str, resize: Union[Sequence[int], int, None] = None):
     if isinstance(resize, int):
         h = w = resize
     elif isinstance(resize, tuple):
@@ -630,14 +565,77 @@ def load_optical_flow_data(cross_datasets, resize):
         w = resize[1]
     else:
         h = w = 64
-    c = 3
-    of_frames_list = []
-    for dataset in cross_datasets:
-        dataset_name = dataset.__name__
-        of_path = getattr(config, f"{dataset_name}_optical_flow")
-        of_frames = np.load(of_path)
-        n_samples = len(of_frames)
+    of_path = getattr(config, f"{dataset_name}_optical_flow")
+    of_frames = np.load(of_path)
+    n_samples, c, _, _ = of_frames.shape
+    if resize:
         of_frames = sk_resize(of_frames, (n_samples, c, h, w))
-        of_frames_list.append(of_frames)
-    of_frames = np.concatenate(of_frames_list)
     return of_frames
+
+
+def validate_apex(df: pd.DataFrame) -> None:
+    """
+    Validates that the apex is not out of bounds using the dataframe.
+    """
+    assert (df["apex"] - df["onset"] < 0).sum() == 0, "Apex is lower than onset."
+    assert (df["offset"] - df["apex"] < 0).sum() == 0, "Apex is greater than offset."
+
+
+def validate_onset_offset(df: pd.DataFrame, data: CustomDataset) -> None:
+    """
+    Validates that the onset and offset values correspond in the
+    dataset and in the dataframe.
+    """
+    for i, row in df.iterrows():
+        onset_path_last = data.data_path[i][0].split("/")[-1]
+        onset_f = int(re.findall("\d+", onset_path_last)[-1])
+        assert onset_f == row["onset"], \
+            f"The onset does not correspond for the sample\
+            {row['subject']}_{row['material']}"
+        offset_path_last = data.data_path[i][-1].split("/")[-1]
+        offset_f = int(re.findall("\d+", offset_path_last)[-1])
+        assert offset_f == row["offset"], \
+            f"The offset does not correspond for the sample\
+            {row['subject']}_{row['material']}"
+
+
+def validate_n_frames(df: pd.DataFrame, data: CustomDataset) -> None:
+    """
+    Validates whether the number of frames in the dataframe and dataset
+    correspond.
+    """
+    for i, row in df.iterrows():
+        n_frames_df = row["n_frames"]
+        n_frames_data = len(data.data_path[i])
+        assert n_frames_df == n_frames_data, f"\
+            The number of frames does not correspond for the sample\
+             {row['subject']}_{row['material']}"
+
+
+def validate_frames_ascending_order(data: CustomDataset) -> None:
+    """
+    Validates whether the frames are in the correct (ascending) order. The frames may be loaded in a random order
+    on some Linux systems.
+    """
+    for data_path in data.data_path:
+        frame_ns = []
+        for img_path in data_path:
+            last_part = img_path.split("/")[-1]
+            frame_n = int(re.findall("\d+", last_part)[-1])
+            frame_ns.append(frame_n)
+        sorted_frame_ns = sorted(frame_ns)
+        assert sorted_frame_ns == frame_ns, \
+            f"The frames are not in an ascending order for sample {img_path}"
+
+
+def validate_dataset(df: pd.DataFrame, data: CustomDataset) -> None:
+    """
+    Performs a set of validation tests to make sure that the dataframe and the dataset are consistent.
+    An assertion is thrown if there is an issue.
+    """
+    validate_apex(df)
+    validate_n_frames(df, data)
+    validate_onset_offset(df, data)
+    validate_frames_ascending_order(data)
+
+
