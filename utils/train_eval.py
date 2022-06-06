@@ -70,7 +70,7 @@ def cross_dataset_validation(
     """
     Cross dataset evaluation
     """
-    utils.set_random_seeds()
+    utils.set_random_seeds(4)
     dataset_names = df["dataset"].unique()
     # Action units with 20 or more samples
     #action_units = df.loc[:, "AU1":].columns[df.loc[:, "AU1":].sum() > 10].tolist()
@@ -105,15 +105,15 @@ def cross_dataset_validation(
         outputs_list.append(outputs_test)
         print(
             f"Dataset: {dataset_name}, n={test_data.shape[0]} | "
-            f"train_f1: {np.mean(train_f1):.5} | "
-            f"test_f1: {np.mean(test_f1):.5}"
+            f"train_f1: {np.mean(train_f1):.4} | "
+            f"test_f1: {np.mean(test_f1):.4}"
         )
-        print(f"Test F1 per AU: {list(zip(cf.action_units, np.around(test_f1, 5)))}\n")
+        print(f"Test F1 per AU: {list(zip(cf.action_units, np.around(np.array(test_f1) * 100, 2)))}\n")
     # Calculate total f1-scores
     predictions = torch.cat(outputs_list)
     f1_aus = evaluation(labels, predictions)
-    print("All AUs: ", list(zip(cf.action_units, np.around(f1_aus, 5))))
-    print("Mean f1: ", np.mean(f1_aus))
+    print("All AUs: ", list(zip(cf.action_units, np.around(np.array(f1_aus) * 100, 2))))
+    print("Mean f1: ", np.around(np.mean(f1_aus) * 100, 2))
     return outputs_list
 
 
