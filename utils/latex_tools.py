@@ -6,7 +6,7 @@ import torch
 
 
 def list_to_latex(values: list) -> str:
-    string_list = [str(round(v, 4)) for v in values]
+    string_list = [str(round(v, 1)) for v in values]
     return " & ".join(string_list)
 
 
@@ -17,6 +17,7 @@ def results_to_latex(outputs_list: List[np.ndarray], df: pd.DataFrame, action_un
     # Per action units
     labels = np.concatenate([np.expand_dims(df[au], 1) for au in aus], axis=1)
     f1_aus = evaluation(torch.cat(outputs_list), labels)
+    f1_aus = [au_f1 * 100 for au_f1 in f1_aus]
     # Per dataset
     f1_datasets = []
     for i, dataset_name in enumerate(df["dataset"].unique()):
@@ -25,7 +26,7 @@ def results_to_latex(outputs_list: List[np.ndarray], df: pd.DataFrame, action_un
             [np.expand_dims(df_dataset[au], 1) for au in aus], axis=1
         )
         f1_dataset = np.mean(evaluation(outputs_list[i], labels))
-        f1_datasets.append(f1_dataset)
+        f1_datasets.append(f1_dataset * 100)
     # Add average at the end of both
     aus.append("Average")
     f1_aus.append(np.mean(f1_aus))
