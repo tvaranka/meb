@@ -1,9 +1,13 @@
 from functools import partial
+from abc import ABC, abstractmethod
+from tqdm import tqdm
+
 import numpy as np
 import torch.nn as nn
 import torch
 import pandas as pd
 import utils.utils as utils
+import utils.latex_tools as lt
 from typing import Callable, Tuple, List, Union
 from sklearn.metrics import f1_score
 from sklearn.preprocessing import LabelEncoder
@@ -62,6 +66,175 @@ def megc_validation(
     return outputs_list
 
 
+class BasicConfig:
+    """
+    Used to store config values.
+    """
+
+
+class Validation(ABC):
+    """
+    Abstract class for validation.
+    """
+
+    def __init__(self, config: BasicConfig):
+        self.cf = config
+
+    @abstractmethod
+    def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
+        pass
+
+    def get_data_loader(
+            self, data: np.ndarray, labels: np.ndarray, train: bool
+    ) -> torch.utils.data.DataLoader:
+        transform = self.cf.train_transform if train else self.cf.test_transform
+        dataset = utils.MEData(data, labels, transform)
+        dataloader = torch.utils.data.DataLoader(
+            dataset, batch_size=self.cf.batch_size, shuffle=train, num_workers=0, pin_memory=True
+        )
+        return dataloader
+
+    @staticmethod
+    def split_data(
+            split_column: pd.Series, data: np.ndarray, labels: np.ndarray, split_name: str
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """
+        Splits data based on the split_column and split_name. E.g., df["dataset"] == "smic"
+        """
+        train_idx = split_column[split_column != split_name].index
+        test_idx = split_column[split_column == split_name].index
+        return data[train_idx], labels[train_idx], data[test_idx], labels[test_idx]
+
+    def train_model(self, dataloader: torch.utils.data.DataLoader) -> None:
+        for epoch in range(self.cf.epochs):
+            for batch in dataloader:
+                data_batch, labels_batch = batch[0].to(self.cf.device), batch[1].to(self.cf.device)
+                self.optimizer.zero_grad()
+
+                outputs = self.cf.model(data_batch.float())
+                loss = self.cf.criterion(outputs, labels_batch.long())
+                loss.backward()
+                self.optimizer.step()
+
+    @abstractmethod
+    def evaluate_model(self, dataloader: torch.utils.data.DataLoader, test: bool = False):
+        pass
+
+
+class CrossDatasetValidation(Validation):
+    """
+    Performs cross-dataset validation.
+    """
+
+    def __init__(self, config: BasicConfig, verbose: bool = True):
+        number_of_tasks = len(config.action_units)
+        super().__init__(config)
+        self.verbose = True
+
+    def validate_n_times(self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5) -> None:
+        self.verbose = False
+        au_results = []
+        dataset_results = []
+        for n in tqdm(range(n_times)):
+            outputs_list = self.validate(df, input_data, seed_n=n + 45)
+            au_result, dataset_result = lt.results_to_list(outputs_list, df, self.config.action_units)
+            au_results.append(au_result)
+            dataset_results.append(dataset_result)
+        au_results = lt.list_to_latex(np.mean(au_results, axis=0))
+        dataset_results = lt.list_to_latex(np.mean(dataset_results, axis=0))
+        aus = [i for i in self.config.action_units]
+        dataset_names = df["dataset"].unique().tolist()
+        aus.append("Average")
+        dataset_names.append("Average")
+        print("AUS:", aus)
+        print(au_results)
+        print("\nDatasets: ", dataset_names)
+        print(dataset_results)
+
+    def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
+        utils.set_random_seeds(seed_n)
+        dataset_names = df["dataset"].unique()
+        # Create a boolean array with the AUs
+        labels = np.concatenate([np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1)
+        number_of_tasks = labels.shape[1]
+        outputs_list = []
+        model = self.cf.model.to(self.cf.device)
+        for dataset_name in dataset_names:
+            train_f1, test_f1, outputs_test = self.validate_dataset(df, input_data, labels, dataset_name)
+            outputs_list.append(outputs_test)
+            if self.verbose:
+                print(
+                    f"Dataset: {dataset_name}, n={outputs_test.shape[0]} | "
+                    f"train_f1: {np.mean(train_f1):.4} | "
+                    f"test_f1: {np.mean(test_f1):.4}"
+                )
+                print(f"Test F1 per AU: {list(zip(self.cf.action_units, np.around(np.array(test_f1) * 100, 2)))}\n")
+
+        # Calculate total f1-scores
+        predictions = torch.cat(outputs_list)
+        f1_aus = self.cf.evaluation(labels, predictions)
+        if self.verbose:
+            print("All AUs: ", list(zip(self.cf.action_units, np.around(np.array(f1_aus) * 100, 2))))
+            print("Mean f1: ", np.around(np.mean(f1_aus) * 100, 2))
+        return outputs_list
+
+    def validate_dataset(self, df: pd.DataFrame, input_data: np.ndarray, labels: np.ndarray, dataset_name: str):
+        train_data, train_labels, test_data, test_labels = self.split_data(
+            df["dataset"], input_data, labels, dataset_name
+        )
+        train_loader = self.get_data_loader(train_data, train_labels, train=True)
+        test_loader = self.get_data_loader(test_data, test_labels, train=False)
+        self.cf.model.apply(utils.reset_weights)
+        self.optimizer = self.cf.optimizer(
+            self.cf.model.parameters(), lr=self.cf.learning_rate, weight_decay=self.cf.weight_decay
+        )
+
+        self.train_model(train_loader)
+
+        train_f1 = self.evaluate_model(train_loader)
+        test_f1, outputs_test = self.evaluate_model(test_loader, test=True)
+        return train_f1, test_f1, outputs_test
+
+    def evaluate_model(self, dataloader: torch.utils.data.DataLoader, test: bool = False
+                       ) -> Union[List[float], Tuple[List[float], torch.tensor]]:
+        """
+        Evaluates the model given a dataloader and an evaluation function. Returns
+        the evaluation result and if boolean test is set to true also the
+        predictions.
+        """
+        self.cf.model.eval()
+        outputs_list = []
+        labels_list = []
+        for batch in dataloader:
+            data_batch = batch[0].to(self.cf.device)
+            labels_batch = batch[1]
+            outputs = self.cf.model(data_batch.float())
+            outputs_list.append([output.detach().cpu() for output in outputs])
+            labels_list.append(labels_batch)
+        self.cf.model.train()
+        predictions = self.outputs_list_to_predictions(outputs_list)
+        labels = torch.cat(labels_list)
+        result = self.cf.evaluation(labels, predictions)
+        if test:
+            return result, predictions
+        return result
+
+    @staticmethod
+    def outputs_list_to_predictions(outputs_list: List[List[torch.tensor]]) -> torch.tensor:
+        """
+        Turns the output lists from multi-task format to a single tensor predictions
+        """
+        predictions = torch.cat(
+            [
+                torch.tensor(
+                    [torch.max(au_output, 1)[1].tolist() for au_output in split_output]
+                ).T
+                for split_output in outputs_list
+            ]
+        )
+        return predictions
+
+
 def cross_dataset_validation(
     input_data: np.ndarray,
     df: pd.DataFrame,
@@ -72,11 +245,7 @@ def cross_dataset_validation(
     """
     utils.set_random_seeds(4)
     dataset_names = df["dataset"].unique()
-    # Action units with 20 or more samples
-    #action_units = df.loc[:, "AU1":].columns[df.loc[:, "AU1":].sum() > 10].tolist()
-    # Drop AU45 as it is in only one dataset
-    #action_units.remove("AU45")
-    # Create a boolean array with the values
+    # Create a boolean array with the AUs
     labels = np.concatenate([np.expand_dims(df[au], 1) for au in cf.action_units], axis=1)
     number_of_tasks = labels.shape[1]
     outputs_list = []
