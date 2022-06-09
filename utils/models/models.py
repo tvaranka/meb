@@ -5,6 +5,7 @@ import utils.models.resnet
 SSSNet = utils.models.me_networks.SSSNet
 Resnet8 = utils.models.resnet.Resnet8
 Resnet18 = utils.models.resnet.Resnet18
+Resnet18_3D = utils.models.resnet.Resnet18_3D
 STSTNet = utils.models.me_networks.STSTNet
 OffApexNet = utils.models.me_networks.OffApexNet
 
