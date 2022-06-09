@@ -2,7 +2,7 @@ import os
 import re
 from itertools import chain
 from experiments.config.dataset_config import config
-from typing import List, Tuple, Optional, Sequence, Union
+from typing import List, Tuple, Optional, Sequence, Union, Callable
 from utils.get_image_size import get_image_size
 
 import numpy as np
@@ -41,11 +41,12 @@ def extract_action_units(df: pd.DataFrame) -> pd.DataFrame:
 
 class CustomDataset:
     def __init__(
-        self, data_path: List[List[str]], color: bool = False, resize=None
+        self, data_path: List[List[str]], color: bool = False, resize=None, n_sample: int = 6
     ) -> None:
         self.data_path = data_path
         self.color = color
         self.resize = resize
+        self.n_sample = n_sample
 
     def __len__(self) -> int:
         return len(self.data_path)
@@ -60,6 +61,16 @@ class CustomDataset:
         elif isinstance(index, slice):
             data_path = self.data_path[index]
             return CustomDataset(data_path, color=self.color, resize=self.resize)
+
+    def get_video_sampled(self, index: int, sampling_func: Callable = None):
+        if not isinstance(index, int):
+            raise NotImplementedError("Currently only accepts a single integer index")
+        data_path = self.data_path[index]
+        if sampling_func:
+            n_frames = get_number_of_frames(data_path)
+            frame_inds = sampling_func(self.n_sample, n_frames)
+            data_path = [path for frame_n, path in enumerate(data_path) if frame_n in frame_inds]
+        return self._get_video(data_path)
 
     def __repr__(self) -> str:
         return f"CustomDataset with {len(self)} items from {self.data_path[0][0]}"
@@ -110,6 +121,21 @@ class CustomDataset:
         return (len(self),) + self[0].shape
 
 
+def get_number_of_files(folder: str):
+    """
+    Returns the number of files in a folder. Used for getting the number of frames
+    """
+    return len(os.listdir(folder))
+
+
+def get_number_of_frames(subject_frame_paths: List[str]):
+    """
+    Returns the number of frames based on the first frame path.
+    """
+    subject_folder = "/".join(subject_frame_paths[0].split("/")[:-1])
+    return get_number_of_files(subject_folder)
+
+
 def get_video_paths(format_path: str, df: pd.DataFrame) -> List[List[str]]:
     """
     Takes a format_path which specifies the specific path for individual dataset
@@ -138,11 +164,6 @@ def sort_video_path(video_path: List[str]):
     # Get the frame information by splitting with "/" and then taking the last part.
     # Get only the digits and make it an int
     # Use the i to get an index which is then used to sort the video path
-    #d = {}
-    #for i, data_path in enumerate(video_path):
-    #    frame_number = only_digit(data_path.split("/")[-1])
-    #    if frame_number:
-    #        d[i] = frame_number
     d = {i: int(only_digit(data_path.split("/")[-1])) for i, data_path in enumerate(video_path)}
     idx = list(dict(sorted(d.items(), key=lambda x: x[1])).keys())
     # Use numpy array for convenient indexing

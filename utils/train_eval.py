@@ -88,9 +88,11 @@ class Validation(ABC):
             self, data: np.ndarray, labels: np.ndarray, train: bool
     ) -> torch.utils.data.DataLoader:
         transform = self.cf.train_transform if train else self.cf.test_transform
-        dataset = utils.MEData(data, labels, transform)
+        dataset = utils.MEData(data, labels,
+                               transform_spatial=transform["spatial"],
+                               transform_temporal=transform["temporal"])
         dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=self.cf.batch_size, shuffle=train, num_workers=0, pin_memory=True
+            dataset, batch_size=self.cf.batch_size, shuffle=train, num_workers=4, pin_memory=True
         )
         return dataloader
 
@@ -101,12 +103,12 @@ class Validation(ABC):
         """
         Splits data based on the split_column and split_name. E.g., df["dataset"] == "smic"
         """
-        train_idx = split_column[split_column != split_name].index
-        test_idx = split_column[split_column == split_name].index
+        train_idx = split_column[split_column != split_name].index.tolist()
+        test_idx = split_column[split_column == split_name].index.tolist()
         return data[train_idx], labels[train_idx], data[test_idx], labels[test_idx]
 
     def train_model(self, dataloader: torch.utils.data.DataLoader) -> None:
-        for epoch in range(self.cf.epochs):
+        for epoch in tqdm(range(self.cf.epochs)):
             for batch in dataloader:
                 data_batch, labels_batch = batch[0].to(self.cf.device), batch[1].to(self.cf.device)
                 self.optimizer.zero_grad()

@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Union
 import random
 
 import numpy as np
@@ -9,18 +9,25 @@ from sklearn.metrics import f1_score
 
 
 class MEData(Dataset):
-    def __init__(self, frames: np.ndarray, labels: np.ndarray, transform=None):
+    def __init__(self, frames: Union[np.ndarray, "CustomDataset"], labels: np.ndarray,
+                 transform_temporal=None, transform_spatial=None):
         self.frames = frames
         self.labels = labels
-        self.transform = transform
+        self.transform_temporal = transform_temporal
+        self.transform_spatial = transform_spatial
 
     def __len__(self):
-        return self.frames.shape[0]
+        return len(self.frames)
 
     def __getitem__(self, idx: int) -> Tuple[np.ndarray, np.ndarray]:
-        sample = self.frames[idx]
-        if self.transform:
-            sample = self.transform(sample)
+        if self.transform_temporal:
+            sample = self.frames.get_video_sampled(idx, self.transform_temporal)
+            if len(sample.shape) == 3: # Grayscale, pad dims
+                sample = np.expand_dims(sample, 0)
+        else:
+            sample = self.frames[idx]
+        if self.transform_spatial:
+            sample = self.transform_spatial(sample)
         label = self.labels[idx]
         return sample, label
 
@@ -41,25 +48,26 @@ def set_random_seeds(seed: int = 1) -> None:
 
 
 class MultiTaskLoss(nn.Module):
-    def __init__(self, task_num: int):
-        super(MultiTaskLoss, self).__init__()
-        self.task_num = task_num
+    def __init__(self):
+        super().__init__()
         self.criterion = nn.CrossEntropyLoss()
 
-    def forward(self, predictions: torch.tensor, labels: torch.tensor) -> float:
-        losses = [self.criterion(predictions[i], labels[:, i]) for i in range(self.task_num)]
+    def forward(self, predictions: List[torch.tensor], labels: torch.tensor) -> float:
+        task_num = len(predictions)
+        losses = [self.criterion(predictions[i], labels[:, i]) for i in range(task_num)]
         return sum(losses)
 
 
 class MultiTaskF1(nn.Module):
-    def __init__(self, task_num: int):
-        super(MultiTaskF1, self).__init__()
-        self.task_num = task_num
+    def __init__(self):
+        super().__init__()
 
-    def forward(self, labels: torch.tensor, predictions: torch.tensor
-    ) -> List[float]:
+    @staticmethod
+    def forward(labels: torch.tensor, predictions: torch.tensor
+                ) -> List[float]:
+        task_num = predictions.shape[-1]
         f1s = [
             f1_score(labels[:, i], predictions[:, i], average="macro")
-            for i in range(self.task_num)
+            for i in range(task_num)
         ]
         return f1s
