@@ -7,7 +7,8 @@ from typing import List
 
 @multi_task
 class SSSNet(nn.Module):
-    def __init__(self, output_size: int = 3, h_dims: List[int] = [32, 64, 256], dropout: float = 0.5, **kwargs):
+    def __init__(self, output_size: int = 3, h_dims: List[int] = [32, 64, 256],
+                 dropout: float = 0.5, softmax=False, **kwargs):
         super().__init__()
         self.output_size = output_size
         h1 = h_dims[0]
@@ -26,7 +27,9 @@ class SSSNet(nn.Module):
         self.fc1 = nn.Linear(9 ** 2 * h2, h3)
         self.drop3 = nn.Dropout(dropout)
         self.fc = nn.Linear(h3, output_size)
-        #self.softmax = nn.Softmax(dim=1)
+        self.softmax = None
+        if softmax:
+            self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
         x = self.drop1(self.bn1(self.pool(F.relu(self.conv1(x)))))
@@ -34,7 +37,8 @@ class SSSNet(nn.Module):
         x = x.view(x.shape[0], -1)
         x = F.relu(self.fc1(x))
         x = self.fc(self.drop3(x))
-        #x = self.softmax(x)
+        if self.softmax:
+            x = self.softmax(x)
         return x
 
 
