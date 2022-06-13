@@ -76,9 +76,11 @@ class Validation(ABC):
     """
     Abstract class for validation.
     """
+    split_column: str
 
     def __init__(self, config: BasicConfig):
         self.cf = config
+        self.disable_tqdm = False
 
     @abstractmethod
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
@@ -92,7 +94,7 @@ class Validation(ABC):
                                transform_spatial=transform["spatial"],
                                transform_temporal=transform["temporal"])
         dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=self.cf.batch_size, shuffle=train, num_workers=4, pin_memory=True
+            dataset, batch_size=self.cf.batch_size, shuffle=train, num_workers=0, pin_memory=True
         )
         return dataloader
 
@@ -108,7 +110,7 @@ class Validation(ABC):
         return data[train_idx], labels[train_idx], data[test_idx], labels[test_idx]
 
     def train_model(self, dataloader: torch.utils.data.DataLoader) -> None:
-        for epoch in tqdm(range(self.cf.epochs)):
+        for epoch in tqdm(range(self.cf.epochs), disable=self.disable_tqdm):
             for batch in dataloader:
                 data_batch, labels_batch = batch[0].to(self.cf.device), batch[1].to(self.cf.device)
                 self.optimizer.zero_grad()
@@ -118,9 +120,44 @@ class Validation(ABC):
                 loss.backward()
                 self.optimizer.step()
 
-    @abstractmethod
-    def evaluate_model(self, dataloader: torch.utils.data.DataLoader, test: bool = False):
-        pass
+    def validate_split(self, df: pd.DataFrame, input_data: np.ndarray, labels: np.ndarray, split_name: str):
+        train_data, train_labels, test_data, test_labels = self.split_data(
+            df[self.split_column], input_data, labels, split_name
+        )
+        train_loader = self.get_data_loader(train_data, train_labels, train=True)
+        test_loader = self.get_data_loader(test_data, test_labels, train=False)
+        self.cf.model.apply(utils.reset_weights)
+        self.optimizer = self.cf.optimizer(
+            self.cf.model.parameters(), lr=self.cf.learning_rate, weight_decay=self.cf.weight_decay
+        )
+        self.train_model(train_loader)
+        train_f1 = self.evaluate_model(train_loader)
+        test_f1, outputs_test = self.evaluate_model(test_loader, test=True)
+        return train_f1, test_f1, outputs_test
+
+    def evaluate_model(self, dataloader: torch.utils.data.DataLoader, test: bool = False
+                       ) -> Union[List[float], Tuple[List[float], torch.tensor]]:
+        """
+        Evaluates the model given a dataloader and an evaluation function. Returns
+        the evaluation result and if boolean test is set to true also the
+        predictions.
+        """
+        self.cf.model.eval()
+        outputs_list = []
+        labels_list = []
+        for batch in dataloader:
+            data_batch = batch[0].to(self.cf.device)
+            labels_batch = batch[1]
+            outputs = self.cf.model(data_batch.float())
+            outputs_list.append(outputs.detach().cpu())
+            labels_list.append(labels_batch)
+        self.cf.model.train()
+        predictions = torch.cat(outputs_list)
+        labels = torch.cat(labels_list)
+        result = self.cf.evaluation(labels, predictions)
+        if test:
+            return result, predictions
+        return result
 
 
 class CrossDatasetValidation(Validation):
@@ -129,9 +166,9 @@ class CrossDatasetValidation(Validation):
     """
 
     def __init__(self, config: BasicConfig, verbose: bool = True):
-        number_of_tasks = len(config.action_units)
         super().__init__(config)
         self.verbose = True
+        self.split_column = "dataset"
 
     def validate_n_times(self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5) -> None:
         self.verbose = False
@@ -162,7 +199,7 @@ class CrossDatasetValidation(Validation):
         outputs_list = []
         model = self.cf.model.to(self.cf.device)
         for dataset_name in dataset_names:
-            train_f1, test_f1, outputs_test = self.validate_dataset(df, input_data, labels, dataset_name)
+            train_f1, test_f1, outputs_test = self.validate_split(df, input_data, labels, dataset_name)
             outputs_list.append(outputs_test)
             if self.verbose:
                 print(
@@ -180,222 +217,44 @@ class CrossDatasetValidation(Validation):
             print("Mean f1: ", np.around(np.mean(f1_aus) * 100, 2))
         return outputs_list
 
-    def validate_dataset(self, df: pd.DataFrame, input_data: np.ndarray, labels: np.ndarray, dataset_name: str):
-        train_data, train_labels, test_data, test_labels = self.split_data(
-            df["dataset"], input_data, labels, dataset_name
-        )
-        train_loader = self.get_data_loader(train_data, train_labels, train=True)
-        test_loader = self.get_data_loader(test_data, test_labels, train=False)
-        self.cf.model.apply(utils.reset_weights)
-        self.optimizer = self.cf.optimizer(
-            self.cf.model.parameters(), lr=self.cf.learning_rate, weight_decay=self.cf.weight_decay
-        )
 
-        self.train_model(train_loader)
+class MEGCValidation(Validation):
+    def __init__(self, config: BasicConfig, verbose: bool = True):
+        super().__init__(config)
+        self.verbose = True
+        self.split_column = "subject"
+        self.disable_tqdm = True
 
-        train_f1 = self.evaluate_model(train_loader)
-        test_f1, outputs_test = self.evaluate_model(test_loader, test=True)
-        return train_f1, test_f1, outputs_test
-
-    def evaluate_model(self, dataloader: torch.utils.data.DataLoader, test: bool = False
-                       ) -> Union[List[float], Tuple[List[float], torch.tensor]]:
-        """
-        Evaluates the model given a dataloader and an evaluation function. Returns
-        the evaluation result and if boolean test is set to true also the
-        predictions.
-        """
-        self.cf.model.eval()
+    def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
+        utils.set_random_seeds(seed_n)
+        subject_names = df["subject"].unique()
+        le = LabelEncoder()
+        labels = le.fit_transform(df["emotion"])
         outputs_list = []
-        labels_list = []
-        for batch in dataloader:
-            data_batch = batch[0].to(self.cf.device)
-            labels_batch = batch[1]
-            outputs = self.cf.model(data_batch.float())
-            outputs_list.append([output.detach().cpu() for output in outputs])
-            labels_list.append(labels_batch)
-        self.cf.model.train()
-        predictions = self.outputs_list_to_predictions(outputs_list)
-        labels = torch.cat(labels_list)
-        result = self.cf.evaluation(labels, predictions)
-        if test:
-            return result, predictions
-        return result
+        model = self.cf.model.to(self.cf.device)
+        for subject_name in subject_names:
+            train_f1, test_f1, outputs_test = self.validate_split(df, input_data, labels, subject_name)
+            outputs_list.append(outputs_test)
+            if self.verbose:
+                print(
+                    f"Subject: {subject_name}, n={outputs_test.shape[0]} | "
+                    f"train_f1: {np.mean(train_f1):.4} | "
+                    f"test_f1: {np.mean(test_f1):.4}"
+                )
 
-    @staticmethod
-    def outputs_list_to_predictions(outputs_list: List[List[torch.tensor]]) -> torch.tensor:
-        """
-        Turns the output lists from multi-task format to a single tensor predictions
-        """
-        predictions = torch.cat(
-            [
-                torch.tensor(
-                    [torch.max(au_output, 1)[1].tolist() for au_output in split_output]
-                ).T
-                for split_output in outputs_list
-            ]
-        )
-        return predictions
-
-
-def cross_dataset_validation(
-    input_data: np.ndarray,
-    df: pd.DataFrame,
-    cf
-) -> List[np.ndarray]:
-    """
-    Cross dataset evaluation
-    """
-    utils.set_random_seeds(4)
-    dataset_names = df["dataset"].unique()
-    # Create a boolean array with the AUs
-    labels = np.concatenate([np.expand_dims(df[au], 1) for au in cf.action_units], axis=1)
-    number_of_tasks = labels.shape[1]
-    outputs_list = []
-    criterion = utils.MultiTaskLoss(number_of_tasks)
-    evaluation = utils.MultiTaskF1(number_of_tasks)
-    model = cf.model.to(cf.device)
-    for dataset_name in dataset_names:
-        train_data, train_labels, test_data, test_labels = split_data(
-            df["dataset"], input_data, labels, dataset_name
-        )
-        train_loader = get_data_loader(
-            train_data, train_labels, transform=cf.train_transform, train=True, batch_size=cf.batch_size
-        )
-        test_loader = get_data_loader(
-            test_data, test_labels, transform=cf.test_transform, train=False, batch_size=cf.batch_size
-        )
-        model.apply(utils.reset_weights)
-        optimizer = cf.optimizer(model.parameters(), lr=cf.learning_rate, weight_decay=cf.weight_decay)
-
-        train_model(model, train_loader, criterion, optimizer, epochs=cf.epochs, device=cf.device)
-
-        train_f1 = evaluate_model_multi_task(model, train_loader, evaluation, cf.device)
-        test_f1, outputs_test = evaluate_model_multi_task(
-            model, test_loader, evaluation, test=True, device=cf.device
-        )
-        outputs_list.append(outputs_test)
-        print(
-            f"Dataset: {dataset_name}, n={test_data.shape[0]} | "
-            f"train_f1: {np.mean(train_f1):.4} | "
-            f"test_f1: {np.mean(test_f1):.4}"
-        )
-        print(f"Test F1 per AU: {list(zip(cf.action_units, np.around(np.array(test_f1) * 100, 2)))}\n")
-    # Calculate total f1-scores
-    predictions = torch.cat(outputs_list)
-    f1_aus = evaluation(labels, predictions)
-    print("All AUs: ", list(zip(cf.action_units, np.around(np.array(f1_aus) * 100, 2))))
-    print("Mean f1: ", np.around(np.mean(f1_aus) * 100, 2))
-    return outputs_list
-
-
-def get_data_loader(
-    data: np.ndarray, labels: np.ndarray, transform, train: bool, batch_size: int
-) -> torch.utils.data.DataLoader:
-    dataset = utils.MEData(data, labels, transform)
-    dataloader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, shuffle=train, num_workers=0, pin_memory=True
-    )
-    return dataloader
-
-
-def train_model(
-    model: nn.Module,
-    dataloader: torch.utils.data.DataLoader,
-    criterion,
-    optimizer,
-    epochs: int,
-    device
-) -> None:
-    for epoch in range(epochs):
-        for batch in dataloader:
-            data_batch, labels_batch = batch[0].to(device), batch[1].to(device)
-            optimizer.zero_grad()
-
-            outputs = model(data_batch.float())
-            loss = criterion(outputs, labels_batch.long())
-            loss.backward()
-            optimizer.step()
-
-
-def evaluate_model(
-    model: nn.Module,
-    dataloader: torch.utils.data.DataLoader,
-    evaluation_func: Callable[[torch.tensor, torch.tensor], Union[List[float], float]],
-    device: torch.device,
-    test: bool = False,
-) -> Union[float, Tuple[float, torch.tensor]]:
-    """
-    Evaluates the model given a dataloader and an evaluation function. Returns
-    the evaluation result and if boolean test is set to true also the
-    predictions.
-    """
-    model.eval()
-    outputs_list = []
-    labels_list = []
-    for batch in dataloader:
-        data_batch = batch[0].to(device)
-        labels_batch = batch[1]
-        outputs = model(data_batch.float())
-        outputs_list.append(outputs)
-        labels_list.append(labels_batch)
-    model.train()
-    outputs = torch.cat(outputs_list).cpu().detach()
-    _, predictions = outputs.max(1)
-    labels = torch.cat(labels_list)
-    result = evaluation_func(labels, predictions)
-    if test:
-        return result, predictions
-    return result
-
-
-def evaluate_model_multi_task(
-    model: nn.Module,
-    dataloader: torch.utils.data.DataLoader,
-    evaluation_func: Callable[[torch.tensor, torch.tensor], Union[List[float], float]],
-    device: torch.device,
-    test: bool = False,
-) -> Union[List[float], Tuple[List[float], torch.tensor]]:
-    """
-    Evaluates the model given a dataloader and an evaluation function. Returns
-    the evaluation result and if boolean test is set to true also the
-    predictions.
-    """
-    model.eval()
-    outputs_list = []
-    labels_list = []
-    for batch in dataloader:
-        data_batch = batch[0].to(device)
-        labels_batch = batch[1]
-        outputs = model(data_batch.float())
-        outputs_list.append([output.detach().cpu() for output in outputs])
-        labels_list.append(labels_batch)
-    model.train()
-    predictions = outputs_list_to_predictions(outputs_list)
-    labels = torch.cat(labels_list)
-    result = evaluation_func(labels, predictions)
-    if test:
-        return result, predictions
-    return result
-
-
-def split_data(
-    split_column: pd.Series, data: np.ndarray, labels: np.ndarray, split_name: str
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Splits data based on the split_column and split_name. E.g., df["dataset"] == "smic"
-    """
-    train_idx = split_column[split_column != split_name].index
-    test_idx = split_column[split_column == split_name].index
-    return data[train_idx], labels[train_idx], data[test_idx], labels[test_idx]
-
-
-def outputs_list_to_predictions(outputs_list: List[List[torch.tensor]]) -> torch.tensor:
-    predictions = torch.cat(
-        [
-            torch.tensor(
-                [torch.max(au_output, 1)[1].tolist() for au_output in split_output]
-            ).T
-            for split_output in outputs_list
-        ]
-    )
-    return predictions
+        # Calculate total f1-scores
+        predictions = torch.cat(outputs_list)
+        f1_total = self.cf.evaluation(labels, predictions)
+        idx = df["dataset"] == "smic"
+        f1_smic = self.cf.evaluation(labels[idx], predictions[idx])
+        idx = df["dataset"] == "casme2"
+        f1_casme2 = self.cf.evaluation(labels[idx], predictions[idx])
+        idx = df["dataset"] == "samm"
+        f1_samm = self.cf.evaluation(labels[idx], predictions[idx])
+        if self.verbose:
+            print(
+                "Total f1: {}, SMIC: {}, CASME2: {}, SAMM: {}".format(
+                    f1_total, f1_smic, f1_casme2, f1_samm
+                )
+            )
+        return outputs_list
