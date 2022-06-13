@@ -13,60 +13,7 @@ from sklearn.metrics import f1_score
 from sklearn.preprocessing import LabelEncoder
 
 
-def megc_validation(
-    input_data: np.ndarray,
-    df: pd.DataFrame,
-    cf
-) -> List[np.ndarray]:
-    utils.set_random_seeds()
-    le = LabelEncoder()
-    labels = le.fit_transform(df["emotion"])
-    criterion = nn.CrossEntropyLoss()
-    evaluation = partial(f1_score, average="macro")
-    model = cf.model.to(cf.device)
-    outputs_list = []
-    for subject in df["subject"].unique():
-        train_data, train_labels, test_data, test_labels = split_data(
-            df["subject"], input_data, labels, subject
-        )
-        train_loader = get_data_loader(
-            train_data, train_labels, transform=cf.train_transform, train=True, batch_size=cf.batch_size
-        )
-        test_loader = get_data_loader(
-            test_data, test_labels, transform=cf.test_transform, train=False, batch_size=cf.batch_size
-        )
-        model.apply(utils.reset_weights)
-        optimizer = cf.optimizer(model.parameters(), lr=cf.learning_rate, weight_decay=cf.weight_decay)
-
-        train_model(model, train_loader, criterion, optimizer, cf.epochs, cf.device)
-        train_f1 = evaluate_model(model, train_loader, evaluation_func=evaluation, device=cf.device)
-        test_f1, outputs_test = evaluate_model(
-            model, test_loader, evaluation_func=evaluation, test=True, device=cf.device
-        )
-        outputs_list.append(outputs_test)
-        print(
-            f"Subject: {subject}, n={test_data.shape[0]} | "
-            f"train_f1: {np.mean(train_f1):.5} | "
-            f"test_f1: {np.mean(test_f1):.5}"
-        )
-    # Calculate total f1-scores
-    predictions = torch.cat(outputs_list)
-    f1_total = evaluation(labels, predictions)
-    idx = df["dataset"] == "smic"
-    f1_smic = evaluation(labels[idx], predictions[idx])
-    idx = df["dataset"] == "casme2"
-    f1_casme2 = evaluation(labels[idx], predictions[idx])
-    idx = df["dataset"] == "samm"
-    f1_samm = evaluation(labels[idx], predictions[idx])
-    print(
-        "Total f1: {}, SMIC: {}, CASME2: {}, SAMM: {}".format(
-            f1_total, f1_smic, f1_casme2, f1_samm
-        )
-    )
-    return outputs_list
-
-
-class BasicConfig:
+class Config:
     """
     Used to store config values.
     """
@@ -78,7 +25,7 @@ class Validation(ABC):
     """
     split_column: str
 
-    def __init__(self, config: BasicConfig):
+    def __init__(self, config: Config):
         self.cf = config
         self.disable_tqdm = False
 
@@ -165,7 +112,7 @@ class CrossDatasetValidation(Validation):
     Performs cross-dataset validation.
     """
 
-    def __init__(self, config: BasicConfig, verbose: bool = True):
+    def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config)
         self.verbose = True
         self.split_column = "dataset"
@@ -219,7 +166,7 @@ class CrossDatasetValidation(Validation):
 
 
 class MEGCValidation(Validation):
-    def __init__(self, config: BasicConfig, verbose: bool = True):
+    def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config)
         self.verbose = True
         self.split_column = "subject"
