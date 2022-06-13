@@ -67,7 +67,39 @@ class MultiTaskF1(nn.Module):
                 ) -> List[float]:
         task_num = predictions.shape[-1]
         f1s = [
-            f1_score(labels[:, i], predictions[:, i], average="macro")
+            f1_score(labels[:, i], predictions[:, i], average="binary")
             for i in range(task_num)
         ]
         return f1s
+
+
+class MultiLabelBCELoss(nn.Module):
+    def __init__(self, weight: torch.tensor = None):
+        super().__init__()
+        self.loss = nn.BCEWithLogitsLoss(weight=weight)
+
+    def forward(self, x, y):
+        loss = self.loss(x, y.float())
+        return loss
+
+
+class MultiLabelF1Score(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def forward(labels: torch.tensor, predictions: torch.tensor
+                ) -> List[float]:
+        return f1_score(labels, torch.where(predictions > 0, 1, 0), average=None)
+
+
+class MultiClassF1Score(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def forward(labels: torch.tensor, outputs: torch.tensor
+                ) -> List[float]:
+        _, predictions = outputs.max(1)
+        result = f1_score(labels, predictions, average="macro")
+        return result
