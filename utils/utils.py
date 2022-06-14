@@ -27,8 +27,9 @@ class MEData(Dataset):
         else:
             sample = self.frames[idx]
         if self.transform_spatial:
-            sample = torch.tensor(sample * 255).type(torch.uint8)
+            sample = torch.tensor(sample * 255.0).type(torch.uint8)
             sample = self.transform_spatial(sample)
+            sample = (sample / 255.0).type(torch.float32)
         label = self.labels[idx]
         return sample, label
 
