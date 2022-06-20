@@ -3,13 +3,11 @@ from abc import ABC, abstractmethod
 from tqdm import tqdm
 
 import numpy as np
-import torch.nn as nn
 import torch
 import pandas as pd
 import utils.utils as utils
 import utils.latex_tools as lt
-from typing import Callable, Tuple, List, Union
-from sklearn.metrics import f1_score
+from typing import Tuple, List, Union
 from sklearn.preprocessing import LabelEncoder
 
 
