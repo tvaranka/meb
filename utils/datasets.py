@@ -22,9 +22,9 @@ class Smic(dataset_utils.Dataset):
             cropped: bool = True,
             optical_flow: bool = False,
     ) -> None:
-        super().__init__(color, resize, cropped, optical_flow)
         self.dataset_name = "smic"
         self.dataset_path_format = "/{subject}/micro/{emotion}/{material}/"
+        super().__init__(color, resize, cropped, optical_flow)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -44,9 +44,9 @@ class Casme(dataset_utils.Dataset):
             cropped: bool = True,
             optical_flow: bool = False
     ) -> None:
-        super().__init__(color, resize, cropped, optical_flow)
         self.dataset_name = "casme"
         self.dataset_path_format = "/sub{subject}/{material}/"
+        super().__init__(color, resize, cropped, optical_flow)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -82,9 +82,9 @@ class Casme2(dataset_utils.Dataset):
             cropped: bool = True,
             optical_flow: bool = False
     ) -> None:
-        super().__init__(color, resize, cropped, optical_flow)
         self.dataset_name = "casme2"
         self.dataset_path_format = "/sub{subject}/{material}/"
+        super().__init__(color, resize, cropped, optical_flow)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -119,7 +119,6 @@ class Casme2(dataset_utils.Dataset):
         return df
 
 
-
 class SAMM(dataset_utils.Dataset):
     def __init__(
             self,
@@ -128,9 +127,9 @@ class SAMM(dataset_utils.Dataset):
             cropped: bool = True,
             optical_flow: bool = False,
     ) -> None:
-        super().__init__(color, resize, cropped, optical_flow)
         self.dataset_name = "samm"
         self.dataset_path_format = "/{subject}/{material}/"
+        super().__init__(color, resize, cropped, optical_flow)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -178,9 +177,9 @@ class FourDMicro(dataset_utils.Dataset):
             cropped: bool = True,
             optical_flow: bool = False,
     ) -> None:
-        super().__init__(color, resize, cropped, optical_flow)
         self.dataset_name = "fourDmicro"
         self.dataset_path_format = "/{subject}/{material}/"
+        super().__init__(color, resize, cropped, optical_flow)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -221,9 +220,9 @@ class MMEW(dataset_utils.Dataset):
             cropped: bool = True,
             optical_flow: bool = False,
     ) -> None:
-        super().__init__(color, resize, cropped, optical_flow)
         self.dataset_name = "mmew"
         self.dataset_path_format = "/{emotion}/{material}/"
+        super().__init__(color, resize, cropped, optical_flow)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -259,22 +258,22 @@ class CrossDataset(dataset_utils.Dataset):
             cropped: bool = True,
             optical_flow: bool = False,
     ) -> None:
-        super().__init__(color, resize, cropped, optical_flow)
         self.dataset_name = ""
         self.dataset_path_format = ""
-        self.datasets = [Casme, Casme2, SAMM, FourDMicro, MMEW]
+        self.datasets = [dataset(cropped=cropped, color=color, resize=resize)
+                         for dataset in [Casme, Casme2, SAMM, FourDMicro, MMEW]]
+        super().__init__(color, resize, cropped, optical_flow)
 
     @property
-    def data(self) -> Union[np.ndarray, "LazyDataLoader"]:
+    def data(self) -> Union[np.ndarray, dataset_utils.LazyDataLoader]:
         return self.multi_dataset_data()
 
     @property
     def data_frame(self) -> pd.DataFrame:
         cross_dataset_dfs = []
-        for dataset in self.cross_datasets:
-            dataset_obj = dataset(cropped=self.cropped, color=self.color, resize=self.resize)
-            df = dataset_obj.data_frame
-            df.insert(11, "dataset", dataset_obj.dataset_name)
+        for dataset in self.datasets:
+            df = dataset.data_frame
+            df.insert(11, "dataset", dataset.dataset_name)
             cross_dataset_dfs.append(df)
         df = pd.concat(cross_dataset_dfs, axis=0, sort=False)
         df = df.drop(["ApexF2", "index", "Inducement Code", "Duration", "Micro", "Objective Classes",
@@ -295,3 +294,65 @@ class CrossDataset(dataset_utils.Dataset):
         df = df.fillna(0)
         df.loc[:, "AU1":] = df.loc[:, "AU1":].astype(int)
         return df
+
+
+class MEGC(dataset_utils.Dataset):
+    def __init__(
+            self,
+            color: bool = False,
+            resize: Union[Sequence[int], int, None] = None,
+            cropped: bool = True,
+            optical_flow: bool = False,
+    ) -> None:
+        self.dataset_name = ""
+        self.dataset_path_format = ""
+        self.datasets = [dataset(cropped=cropped, color=color, resize=resize) for dataset in [Smic, Casme2, SAMM]]
+        super().__init__(color, resize, cropped, optical_flow)
+
+    @property
+    def data(self) -> Union[np.ndarray, dataset_utils.LazyDataLoader]:
+        all_data = self.multi_dataset_data()
+        _, indices_to_remove = self.get_data_frame_and_indices()
+        indices_to_keep = [i for i in range(len(all_data)) if i not in indices_to_remove]
+        return all_data[indices_to_keep]
+
+    @property
+    def data_frame(self) -> pd.DataFrame:
+        df, _ = self.get_data_frame_and_indices()
+        return df
+
+    def get_data_frame_and_indices(self):
+        dataset_dfs = []
+        for dataset in self.datasets:
+            df = dataset.data_frame
+            df.insert(5, "dataset", dataset.dataset_name)
+            dataset_dfs.append(df)
+        df = pd.concat(dataset_dfs, axis=0, sort=False)
+        df = df.reset_index().drop("index", axis=1)
+        # Add apex to smic as its missing, use half frame
+        df.loc[df.index[df["apex"].isnull()], "apex"] = ((
+                                                                 df[df["apex"].isnull()]["offset"] -
+                                                                 df[df["apex"].isnull()]["onset"]) / 2).astype(int)
+        # Add frame and apex information
+        df["n_frames"] = df["n_frames"].astype(int)
+        df.insert(5, "apexf", df["apex"] - df["onset"])
+        df.loc[df["dataset"] == "smic", "apexf"] = df.loc[df["dataset"] == "smic", "apex"]
+        # Drop AUs and other information from the dataframe
+        aus = df.columns[["AU" in column for column in df.columns]]
+        df = df.drop(aus, axis=1)
+        df = df.drop(["Inducement Code", "Duration", "Micro", "Objective Classes", "Notes", "level_0"], axis=1)
+        # Set correct emotions for megc
+        df.loc[
+            df["emotion"].isin(["Anger", "Contempt", "Disgust", "Sadness", "Fear", "disgust", "repression"]),
+            "emotion",
+        ] = "negative"
+        df.loc[df["emotion"].isin(["Happiness", "happiness"]), "emotion"] = "positive"
+        df.loc[df["emotion"] == "Surprise", "emotion"] = "surprise"
+        # Remove samples that do not belong to megc
+        indices_to_remove = df[df["emotion"].isin(
+            ["fear", "sadness", "others", "Other"])]["emotion"].index.tolist()
+        indices_to_remove.extend(df[(df["subject"] == "04") & (df["material"] == "EP12_01f")].index.tolist())
+        indices_to_remove.extend(df[(df["subject"] == "05") & (df["material"] == "EP12_03f")].index.tolist())
+        indices_to_remove.extend(df[(df["subject"] == "24") & (df["material"] == "EP02_07")].index.tolist())
+        df = df.drop(indices_to_remove).reset_index(drop=True)
+        return df, indices_to_remove

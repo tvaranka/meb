@@ -163,6 +163,8 @@ class Dataset(ABC):
         self.cropped = cropped
         self.optical_flow = optical_flow
         self.n_sample = n_sample
+        if not self.optical_flow and self.dataset_name:
+            validate_dataset(self.data_frame, self.data)
 
     @property
     @abstractmethod
@@ -199,13 +201,13 @@ class Dataset(ABC):
         if self.optical_flow:
             of_frames_list = []
             for dataset in self.datasets:
-                of_frames = dataset(self.color, self.resize, self.cropped, self.optical_flow).data
+                of_frames = dataset.data
                 of_frames_list.append(of_frames)
             of_frames = np.concatenate(of_frames_list)
             return of_frames
 
         data_paths = [video_path for dataset in self.datasets for video_path in
-                      dataset(self.color, self.resize, self.cropped, self.optical_flow).data.data_path
+                      dataset.data.data_path
         ]
         return LazyDataLoader(data_paths, self.color, self.resize, self.n_sample)
 
