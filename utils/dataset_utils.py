@@ -1,7 +1,7 @@
 import os
 import re
 from itertools import chain
-from typing import List, Tuple, Optional, Sequence, Union, Callable
+from typing import List, Tuple, Sequence, Union, Callable
 from abc import ABC, abstractmethod
 
 import pandas as pd
@@ -15,6 +15,29 @@ from experiments.config.dataset_config import config
 
 
 class LazyDataLoader:
+    """
+    Loads video data on demand.
+    Examples
+    # Create a data loader object from paths to the image files List[List[str]]
+    loader = LazyDataLoader(data_path)
+    # The video is loaded once indexed
+    first_video = loader[0]
+    # Supports slicing
+    first_ten_videos = loader[:10]
+    # And multi-indexing
+    some_videos = loader[[4, 7, 8, 11, 56]]
+    # Also works in a loop
+    for video in loader:
+        do_stuff(video)
+
+    Examples from arguments
+    LazyDataLoader(resize=64)
+    -> shape (n_frames, 1, 64, 64)
+    LazyDataLoader(resize=(140, 170))
+    -> shape (n_frames, 1, 140, 170)
+    LazyDataLoader(n_sample=10)
+    -> shape (10, 1, width, height)
+    """
     def __init__(
         self, data_path: List[List[str]], color: bool = False, resize=None, n_sample: int = 6
     ) -> None:
@@ -147,6 +170,23 @@ def sort_video_path(video_path: List[str]):
 
 
 class Dataset(ABC):
+    """
+    Base class for datasets.
+    Examples
+    # Create a dataset object which can then be used to extract the data frame and the data itself
+    dataset = Smic()
+    df = smic.data_frame
+    lazy_data_loader = smic.data
+    # Setting the optical_flow flag true
+    of_frames = Smic(optical_flow).data
+    # Multi dataset with optical flow resized to 64
+    cross_dataset = CrossDataset(resize=64, optical_flow=True)
+    # Use a custom face alignment technique
+    cross_dataset = CrossDataset(cropped=False, color=True)
+    # Indexing returns a data frame and a LazyDataLoader
+    c = CrossDataset()
+    ten_df, ten_data_loader = c[:10]
+    """
     dataset_name: str
     dataset_path_format: str
 
@@ -170,7 +210,8 @@ class Dataset(ABC):
     @abstractmethod
     def data_frame(self) -> pd.DataFrame:
         """
-        Loads the excel file into a data frame and fixes mistakes.
+        Loads the excel file into a Pandas data frame and modifies possible issues
+        and generates additional features.
         """
 
     @property
@@ -191,7 +232,7 @@ class Dataset(ABC):
     def __getitem__(self, index: Union[int, Sequence, slice]) -> Tuple[pd.Series, Union[LazyDataLoader, np.ndarray]]:
         """
         Can be used to index the data.
-        Returns the data frame and data object as a tuple. The dataframe is sorted
+        Returns the data frame and data object as a tuple.
         """
         if not isinstance(index, int):
             index = sorted(index)
@@ -266,11 +307,6 @@ def sort_video_path(video_path: List[str]):
     # Get the frame information by splitting with "/" and then taking the last part.
     # Get only the digits and make it an int
     # Use the i to get an index which is then used to sort the video path
-    #d = {}
-    #for i, data_path in enumerate(video_path):
-    #    frame_number = only_digit(data_path.split("/")[-1])
-    #    if frame_number:
-    #        d[i] = frame_number
     d = {i: int(only_digit(data_path.split("/")[-1])) for i, data_path in enumerate(video_path)}
     idx = list(dict(sorted(d.items(), key=lambda x: x[1])).keys())
     # Use numpy array for convenient indexing
@@ -290,7 +326,7 @@ def load_optical_flow_data(dataset_name: str, resize: Union[Sequence[int], int, 
     of_frames = np.load(of_path)
     n_samples, c, _, _ = of_frames.shape
     if resize:
-        of_frames = sk_resize(of_frames, (n_samples, c, h, w))
+        of_frames = sk_resize(of_frames, (n_samples, c, h, w), anti_aliasing=True)
     return of_frames
 
 

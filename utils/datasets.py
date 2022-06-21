@@ -1,17 +1,10 @@
-import os
-import re
-from itertools import chain
 from experiments.config.dataset_config import config
-from typing import List, Tuple, Optional, Sequence, Union, Callable
-from utils.get_image_size import get_image_size
+from typing import Sequence, Union
 import utils.dataset_utils as dataset_utils
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import cv2
 
-from skimage.transform import resize as sk_resize
 
 
 class Smic(dataset_utils.Dataset):
