@@ -86,13 +86,18 @@ class MultiLabelBCELoss(nn.Module):
 
 
 class MultiLabelF1Score(nn.Module):
-    def __init__(self):
+    def __init__(self, average: str = None):
         super().__init__()
+        self.average = average
 
-    @staticmethod
-    def forward(labels: torch.tensor, predictions: torch.tensor
-                ) -> List[float]:
-        return f1_score(labels, torch.where(predictions > 0, 1, 0), average=None)
+    def forward(self, labels: torch.tensor, outputs: torch.tensor
+    ) -> List[float]:
+        predictions = torch.where(outputs > 0, 1, 0)
+        if self.average is None:
+            return f1_score(labels, predictions, average=None)
+        if self.average == "macro":
+            return [f1_score(labels[:, i], predictions[:, i], average="macro")
+                    for i in range(labels.shape[-1])]
 
 
 class MultiClassF1Score(nn.Module):
