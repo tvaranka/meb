@@ -3,6 +3,8 @@ import re
 from itertools import chain
 from typing import List, Tuple, Sequence, Union, Callable
 from abc import ABC, abstractmethod
+from tqdm import tqdm
+import functools
 
 import pandas as pd
 import numpy as np
@@ -39,7 +41,7 @@ class LazyDataLoader:
     -> shape (10, 1, width, height)
     """
     def __init__(
-        self, data_path: List[List[str]], color: bool = False, resize=None, n_sample: int = 6
+        self, data_path: List[List[str]], color: bool = False, resize=None, n_sample: int = 6,
     ) -> None:
         self.data_path = data_path
         self.color = color
@@ -53,8 +55,8 @@ class LazyDataLoader:
         if isinstance(index, int):
             data_path = self.data_path[index]
             return self._get_video(data_path)
-        elif isinstance(index, list) or isinstance(index, tuple):
-            data_path = [v for i, v in enumerate(self.data_path) if i in index]
+        elif isinstance(index, Sequence):
+            data_path = [self.data_path[i] for i in index]
             return LazyDataLoader(data_path, color=self.color, resize=self.resize)
         elif isinstance(index, slice):
             data_path = self.data_path[index]
@@ -67,7 +69,7 @@ class LazyDataLoader:
         if sampling_func:
             n_frames = get_number_of_frames(data_path)
             frame_inds = sampling_func(self.n_sample, n_frames)
-            data_path = [path for frame_n, path in enumerate(data_path) if frame_n in frame_inds]
+            data_path = [data_path[i] for i in frame_inds]
         return self._get_video(data_path)
 
     def __repr__(self) -> str:
@@ -117,6 +119,47 @@ class LazyDataLoader:
     @property
     def shape(self):
         return (len(self),) + self[0].shape
+
+
+class LoadedDataLoader:
+    def __init__(self, data_in: Union[LazyDataLoader, List[np.ndarray]], n_sample: int = 6) -> None:
+        if isinstance(data_in, LazyDataLoader):
+            self.data_loader = data_in
+            self.data = self.load_data()
+            self.data_path = data_in.data_path
+            self.n_sample = data_in.n_sample
+        else:
+            self.data = data_in
+            self.n_sample = n_sample
+
+    def load_data(self):
+        return [video for video in tqdm(self.data_loader, desc="Loading data")]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index: int):
+        if isinstance(index, int):
+            return self.data[index]
+        elif isinstance(index, Sequence):
+            data = [self.data[i] for i in index]
+            new = type(self)(data, self.n_sample)
+            return new
+        elif isinstance(index, slice):
+            data = self.data[index]
+            new = type(self)(data, self.n_sample)
+            return new
+
+    def __repr__(self) -> str:
+        return f"LoadedDataLoader with {len(self)} items from {self.data_path[0][0]}"
+
+    def get_video_sampled(self, index: int, sampling_func: Callable = None):
+        if not isinstance(index, int):
+            raise NotImplementedError("Currently only accepts a single integer index")
+        if sampling_func:
+            n_frames = len(self.data[index])
+            frame_inds = sampling_func(self.n_sample, n_frames)
+        return self.data[index][frame_inds]
 
 
 def get_number_of_files(folder: str):
@@ -196,13 +239,15 @@ class Dataset(ABC):
         resize: Union[Sequence[int], int, None] = None,
         cropped: bool = True,
         optical_flow: bool = False,
-        n_sample: int = 6
+        n_sample: int = 6,
+        preload: bool = False,
     ) -> None:
         self.color = color
         self.resize = resize
         self.cropped = cropped
         self.optical_flow = optical_flow
         self.n_sample = n_sample
+        self.preload = preload
         if not self.optical_flow and self.dataset_name:
             validate_dataset(self.data_frame, self.data)
 
@@ -215,6 +260,7 @@ class Dataset(ABC):
         """
 
     @property
+    @functools.lru_cache()
     def data(self) -> Union[np.ndarray, LazyDataLoader]:
         """
         Loads the dataset given a path. If the optical_flow flag is set to True, a numpy array is returned, else
@@ -227,6 +273,8 @@ class Dataset(ABC):
         format_path = dataset_path + self.dataset_path_format
         video_paths = get_video_paths(format_path, self.data_frame)
         dataset = LazyDataLoader(video_paths, color=self.color, resize=self.resize, n_sample=self.n_sample)
+        if self.preload:
+            dataset = LoadedDataLoader(dataset)
         return dataset
 
     def __getitem__(self, index: Union[int, Sequence, slice]) -> Tuple[pd.Series, Union[LazyDataLoader, np.ndarray]]:
@@ -251,6 +299,9 @@ class Dataset(ABC):
                       dataset.data.data_path
         ]
         return LazyDataLoader(data_paths, self.color, self.resize, self.n_sample)
+
+    def __repr__(self):
+        return f"{self.dataset_name} dataset with {len(self.data)} samples."
 
 
 def only_digit(s: str) -> str:
