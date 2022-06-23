@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 
 
-
 class Smic(dataset_utils.Dataset):
     def __init__(
             self,
@@ -14,10 +13,11 @@ class Smic(dataset_utils.Dataset):
             resize: Union[Sequence[int], int, None] = None,
             cropped: bool = True,
             optical_flow: bool = False,
+            **kwargs
     ) -> None:
-        self.dataset_name = "smic"
+        self.dataset_name = type(self).__name__.lower()
         self.dataset_path_format = "/{subject}/micro/{emotion}/{material}/"
-        super().__init__(color, resize, cropped, optical_flow)
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -35,11 +35,12 @@ class Casme(dataset_utils.Dataset):
             color: bool = False,
             resize: Union[Sequence[int], int, None] = None,
             cropped: bool = True,
-            optical_flow: bool = False
+            optical_flow: bool = False,
+            **kwargs
     ) -> None:
         self.dataset_name = "casme"
         self.dataset_path_format = "/sub{subject}/{material}/"
-        super().__init__(color, resize, cropped, optical_flow)
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -73,11 +74,12 @@ class Casme2(dataset_utils.Dataset):
             color: bool = False,
             resize: Union[Sequence[int], int, None] = None,
             cropped: bool = True,
-            optical_flow: bool = False
+            optical_flow: bool = False,
+            **kwargs
     ) -> None:
         self.dataset_name = "casme2"
         self.dataset_path_format = "/sub{subject}/{material}/"
-        super().__init__(color, resize, cropped, optical_flow)
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -119,10 +121,11 @@ class SAMM(dataset_utils.Dataset):
             resize: Union[Sequence[int], int, None] = None,
             cropped: bool = True,
             optical_flow: bool = False,
+            **kwargs
     ) -> None:
         self.dataset_name = "samm"
         self.dataset_path_format = "/{subject}/{material}/"
-        super().__init__(color, resize, cropped, optical_flow)
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -169,10 +172,11 @@ class FourDMicro(dataset_utils.Dataset):
             resize: Union[Sequence[int], int, None] = None,
             cropped: bool = True,
             optical_flow: bool = False,
+            **kwargs
     ) -> None:
         self.dataset_name = "fourDmicro"
         self.dataset_path_format = "/{subject}/{material}/"
-        super().__init__(color, resize, cropped, optical_flow)
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -212,10 +216,11 @@ class MMEW(dataset_utils.Dataset):
             resize: Union[Sequence[int], int, None] = None,
             cropped: bool = True,
             optical_flow: bool = False,
+            **kwargs
     ) -> None:
         self.dataset_name = "mmew"
         self.dataset_path_format = "/{emotion}/{material}/"
-        super().__init__(color, resize, cropped, optical_flow)
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
     def data_frame(self) -> pd.DataFrame:
@@ -250,12 +255,13 @@ class CrossDataset(dataset_utils.Dataset):
             resize: Union[Sequence[int], int, None] = None,
             cropped: bool = True,
             optical_flow: bool = False,
+            **kwargs
     ) -> None:
         self.dataset_name = ""
         self.dataset_path_format = ""
         self.datasets = [dataset(cropped=cropped, color=color, resize=resize)
                          for dataset in [Casme, Casme2, SAMM, FourDMicro, MMEW]]
-        super().__init__(color, resize, cropped, optical_flow)
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
     def data(self) -> Union[np.ndarray, dataset_utils.LazyDataLoader]:
@@ -296,11 +302,12 @@ class MEGC(dataset_utils.Dataset):
             resize: Union[Sequence[int], int, None] = None,
             cropped: bool = True,
             optical_flow: bool = False,
+            **kwargs
     ) -> None:
         self.dataset_name = ""
         self.dataset_path_format = ""
         self.datasets = [dataset(cropped=cropped, color=color, resize=resize) for dataset in [Smic, Casme2, SAMM]]
-        super().__init__(color, resize, cropped, optical_flow)
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
     def data(self) -> Union[np.ndarray, dataset_utils.LazyDataLoader]:
