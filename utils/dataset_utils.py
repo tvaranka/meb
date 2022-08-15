@@ -14,6 +14,7 @@ from skimage.transform import resize as sk_resize
 
 from utils.get_image_size import get_image_size
 from experiments.config.dataset_config import config
+from utils import py_evm
 
 
 class LazyDataLoader:
@@ -41,11 +42,15 @@ class LazyDataLoader:
     -> shape (10, 1, width, height)
     """
     def __init__(
-        self, data_path: List[List[str]], color: bool = False, resize=None, n_sample: int = 6,
+        self, data_path: List[List[str]], color: bool = False,
+            resize=None, n_sample: int = 6, magnify: bool = False, **kwargs
     ) -> None:
         self.data_path = data_path
         self.color = color
         self.resize = resize
+        self.magnify = magnify
+        if self.magnify:
+            self.magnify_params = kwargs.pop("magnify_params", {"alpha": 10, "r1": 0.4, "r2": 0.05})
         self.n_sample = n_sample
 
     def __len__(self) -> int:
@@ -54,13 +59,18 @@ class LazyDataLoader:
     def __getitem__(self, index: int):
         if isinstance(index, int):
             data_path = self.data_path[index]
-            return self._get_video(data_path)
+            video = self._get_video(data_path)
+            if self.magnify:
+                return py_evm.magnify(video, **self.magnify_params)
+            return video
         elif isinstance(index, Sequence):
             data_path = [self.data_path[i] for i in index]
-            return LazyDataLoader(data_path, color=self.color, resize=self.resize)
+            return LazyDataLoader(data_path, color=self.color, resize=self.resize,
+                                  magnify=self.magnify, magnify_params=self.magnify_params)
         elif isinstance(index, slice):
             data_path = self.data_path[index]
-            return LazyDataLoader(data_path, color=self.color, resize=self.resize)
+            return LazyDataLoader(data_path, color=self.color, resize=self.resize,
+                                  magnify=self.magnify, magnify_params=self.magnify_params)
 
     def get_video_sampled(self, index: int, sampling_func: Callable = None):
         if not isinstance(index, int):
@@ -239,16 +249,22 @@ class Dataset(ABC):
         resize: Union[Sequence[int], int, None] = None,
         cropped: bool = True,
         optical_flow: bool = False,
+        magnify: bool = False,
         n_sample: int = 6,
         preload: bool = False,
+        ignore_validation: bool = False,
+        magnify_params: dict = {}
+
     ) -> None:
         self.color = color
         self.resize = resize
         self.cropped = cropped
         self.optical_flow = optical_flow
+        self.magnify = magnify
+        self.magnify_params = magnify_params
         self.n_sample = n_sample
         self.preload = preload
-        if not self.optical_flow and self.dataset_name:
+        if not self.optical_flow and self.dataset_name and not ignore_validation:
             validate_dataset(self.data_frame, self.data)
 
     @property
@@ -272,7 +288,9 @@ class Dataset(ABC):
         dataset_path = getattr(config, f"{self.dataset_name}{crop_str}_dataset_path")
         format_path = dataset_path + self.dataset_path_format
         video_paths = get_video_paths(format_path, self.data_frame)
-        dataset = LazyDataLoader(video_paths, color=self.color, resize=self.resize, n_sample=self.n_sample)
+        dataset = LazyDataLoader(video_paths, color=self.color, resize=self.resize,
+                                 n_sample=self.n_sample, magnify=self.magnify, magnify_params=self.magnify_params
+        )
         if self.preload:
             dataset = LoadedDataLoader(dataset)
         return dataset
@@ -298,7 +316,11 @@ class Dataset(ABC):
         data_paths = [video_path for dataset in self.datasets for video_path in
                       dataset.data.data_path
         ]
-        return LazyDataLoader(data_paths, self.color, self.resize, self.n_sample)
+        dataset = LazyDataLoader(data_paths, self.color, self.resize, self.n_sample,
+                                 magnify=self.magnify, magnify_params=self.magnify_params)
+        if self.preload:
+            dataset = LoadedDataLoader(dataset)
+        return dataset
 
     def __repr__(self):
         return f"{self.dataset_name} dataset with {len(self.data)} samples."
@@ -330,41 +352,6 @@ def extract_action_units(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def get_video_paths(format_path: str, df: pd.DataFrame) -> List[List[str]]:
-    """
-    Takes a format_path which specifies the specific path for individual dataset
-    and a dataframe from the dataset
-    """
-    video_paths = []
-
-    for i, row in df.iterrows():
-        video_path = format_path.format(
-            subject=row["subject"], emotion=row["emotion"], material=row["material"]
-        )
-        image_paths = os.listdir(video_path)
-        file_formats = ["jpg", "bmp", "png"]
-        image_paths = [image_path for image_path in image_paths if image_path[-3:] in file_formats]
-        image_paths = [video_path + image_path for image_path in image_paths]
-        image_paths = sort_video_path(image_paths)
-        video_paths.append(image_paths)
-    return video_paths
-
-
-def sort_video_path(video_path: List[str]):
-    """
-    Video paths may be given in a random order on linux devices, where the frames are in
-    a random order. Sorts the frames to the correct order.
-    """
-    # Get the frame information by splitting with "/" and then taking the last part.
-    # Get only the digits and make it an int
-    # Use the i to get an index which is then used to sort the video path
-    d = {i: int(only_digit(data_path.split("/")[-1])) for i, data_path in enumerate(video_path)}
-    idx = list(dict(sorted(d.items(), key=lambda x: x[1])).keys())
-    # Use numpy array for convenient indexing
-    sorted_video_path = list(np.array(video_path)[idx])
-    return sorted_video_path
-
-
 def load_optical_flow_data(dataset_name: str, resize: Union[Sequence[int], int, None] = None):
     if isinstance(resize, int):
         h = w = resize
@@ -385,8 +372,10 @@ def validate_apex(df: pd.DataFrame) -> None:
     """
     Validates that the apex is not out of bounds using the dataframe.
     """
-    assert (df["apex"] - df["onset"] < 0).sum() == 0, "Apex is lower than onset."
-    assert (df["offset"] - df["apex"] < 0).sum() == 0, "Apex is greater than offset."
+    if (df["apex"] - df["onset"] < 0).sum() != 0:
+        print("Warning: Apex is lower than onset.")
+    if (df["offset"] - df["apex"] < 0).sum() != 0:
+        print("Warning: Apex is greater than offset.")
 
 
 def validate_onset_offset(df: pd.DataFrame, data: LazyDataLoader) -> None:
@@ -397,14 +386,14 @@ def validate_onset_offset(df: pd.DataFrame, data: LazyDataLoader) -> None:
     for i, row in df.iterrows():
         onset_path_last = data.data_path[i][0].split("/")[-1]
         onset_f = int(re.findall("\d+", onset_path_last)[-1])
-        assert onset_f == row["onset"], \
-            f"The onset does not correspond for the sample\
-            {row['subject']}_{row['material']}"
+        if onset_f != row["onset"]:
+            print(f"Warning: The onset does not correspond for the sample\
+            {row['subject']}_{row['material']}")
         offset_path_last = data.data_path[i][-1].split("/")[-1]
         offset_f = int(re.findall("\d+", offset_path_last)[-1])
-        assert offset_f == row["offset"], \
-            f"The offset does not correspond for the sample\
-            {row['subject']}_{row['material']}"
+        if offset_f != row["offset"]:
+            print(f"Warning: The offset does not correspond for the sample\
+            {row['subject']}_{row['material']}")
 
 
 def validate_n_frames(df: pd.DataFrame, data: LazyDataLoader) -> None:
@@ -415,9 +404,10 @@ def validate_n_frames(df: pd.DataFrame, data: LazyDataLoader) -> None:
     for i, row in df.iterrows():
         n_frames_df = row["n_frames"]
         n_frames_data = len(data.data_path[i])
-        assert n_frames_df == n_frames_data, f"\
+        if n_frames_df != n_frames_data:
+            print(f"Warning: \
             The number of frames does not correspond for the sample\
-             {row['subject']}_{row['material']}"
+             {row['subject']}_{row['material']}")
 
 
 def validate_frames_ascending_order(data: LazyDataLoader) -> None:
@@ -432,8 +422,8 @@ def validate_frames_ascending_order(data: LazyDataLoader) -> None:
             frame_n = int(re.findall("\d+", last_part)[-1])
             frame_ns.append(frame_n)
         sorted_frame_ns = sorted(frame_ns)
-        assert sorted_frame_ns == frame_ns, \
-            f"The frames are not in an ascending order for sample {img_path}"
+        if sorted_frame_ns != frame_ns:
+            print(f"Warning: The frames are not in an ascending order for sample {img_path}")
 
 
 def validate_dataset(df: pd.DataFrame, data: LazyDataLoader) -> None:

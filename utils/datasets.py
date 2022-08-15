@@ -259,7 +259,7 @@ class CrossDataset(dataset_utils.Dataset):
     ) -> None:
         self.dataset_name = ""
         self.dataset_path_format = ""
-        self.datasets = [dataset(cropped=cropped, color=color, resize=resize)
+        self.datasets = [dataset(cropped=cropped, color=color, resize=resize, optical_flow=optical_flow, **kwargs)
                          for dataset in [Casme, Casme2, SAMM, FourDMicro, MMEW]]
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
@@ -306,7 +306,8 @@ class MEGC(dataset_utils.Dataset):
     ) -> None:
         self.dataset_name = ""
         self.dataset_path_format = ""
-        self.datasets = [dataset(cropped=cropped, color=color, resize=resize) for dataset in [Smic, Casme2, SAMM]]
+        self.datasets = [dataset(cropped=cropped, color=color, resize=resize, optical_flow=optical_flow)
+                         for dataset in [Smic, Casme2, SAMM]]
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
