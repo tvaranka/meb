@@ -69,7 +69,7 @@ class MultiTaskF1(nn.Module):
                 ) -> List[float]:
         task_num = predictions.shape[-1]
         f1s = [
-            f1_score(labels[:, i], predictions[:, i], average="binary")
+            f1_score(labels[:, i], predictions[:, i], average="macro")
             for i in range(task_num)
         ]
         return f1s
@@ -110,3 +110,14 @@ class MultiClassF1Score(nn.Module):
         _, predictions = outputs.max(1)
         result = f1_score(labels, predictions, average="macro")
         return result
+
+
+# A constant dict for handy access to the commonly used action units
+# per dataset
+dataset_aus = {
+    "casme2": ["AU1", "AU2", "AU4", "AU7", "AU12", "AU14", "AU15", "AU17"],
+    "casme": ["AU1", "AU4", "AU9", "AU14"],
+    "samm": ["AU2", "AU4", "AU7", "AU12"],
+    "mmew": ["AU1", "AU2", "AU4", "AU5", "AU7", "AU10", "AU12", "AU14"],
+    "fourDmicro": ["AU1", "AU2", "AU4", "AU6", "AU7", "AU12", "AU17", "AU45"],
+}
