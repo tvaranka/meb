@@ -117,16 +117,19 @@ class CrossDatasetValidation(Validation):
 
     def validate_n_times(self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5) -> None:
         self.verbose = False
+        self.disable_tqdm = True
         au_results = []
         dataset_results = []
         for n in tqdm(range(n_times)):
             outputs_list = self.validate(df, input_data, seed_n=n + 45)
-            au_result, dataset_result = lt.results_to_list(outputs_list, df, self.config.action_units)
+            au_result, dataset_result = lt.results_to_list(
+                outputs_list, df, self.cf.action_units, split=self.split_column
+            )
             au_results.append(au_result)
             dataset_results.append(dataset_result)
         au_results = lt.list_to_latex(np.mean(au_results, axis=0))
         dataset_results = lt.list_to_latex(np.mean(dataset_results, axis=0))
-        aus = [i for i in self.config.action_units]
+        aus = [i for i in self.cf.action_units]
         dataset_names = df["dataset"].unique().tolist()
         aus.append("Average")
         dataset_names.append("Average")
@@ -149,6 +152,61 @@ class CrossDatasetValidation(Validation):
             if self.verbose:
                 print(
                     f"Dataset: {dataset_name}, n={outputs_test.shape[0]} | "
+                    f"train_f1: {np.mean(train_f1):.4} | "
+                    f"test_f1: {np.mean(test_f1):.4}"
+                )
+                print(f"Test F1 per AU: {list(zip(self.cf.action_units, np.around(np.array(test_f1) * 100, 2)))}\n")
+
+        # Calculate total f1-scores
+        predictions = torch.cat(outputs_list)
+        f1_aus = self.cf.evaluation(labels, predictions)
+        if self.verbose:
+            print("All AUs: ", list(zip(self.cf.action_units, np.around(np.array(f1_aus) * 100, 2))))
+            print("Mean f1: ", np.around(np.mean(f1_aus) * 100, 2))
+        return outputs_list
+
+
+class IndividualDatasetAUValidation(Validation):
+    def __init__(self, config: Config, verbose: bool = True):
+        super().__init__(config)
+        self.verbose = True
+        self.split_column = "subject"
+        self.disable_tqdm = True
+
+    def validate_n_times(self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5) -> None:
+        self.verbose = False
+        au_results = []
+        subject_results = []
+        for n in tqdm(range(n_times)):
+            outputs_list = self.validate(df, input_data, seed_n=n + 45)
+            au_result, subject_result = lt.results_to_list(
+                outputs_list, df, self.cf.action_units, split=self.split_column
+            )
+            au_results.append(au_result)
+            subject_results.append(subject_result)
+        au_results = lt.list_to_latex(np.mean(au_results, axis=0))
+        subject_results = lt.list_to_latex(np.mean(subject_results, axis=0))
+        aus = [i for i in self.cf.action_units]
+        subject_names = df[self.split_column].unique().tolist()
+        aus.append("Average")
+        subject_names.append("Average")
+        print("AUS:", aus)
+        print(au_results)
+        print("\nSubjects: ", subject_names)
+        print(subject_results)
+
+    def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
+        utils.set_random_seeds(seed_n)
+        subject_names = df["subject"].unique()
+        labels = np.concatenate([np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1)
+        outputs_list = []
+        model = self.cf.model.to(self.cf.device)
+        for subject_name in subject_names:
+            train_f1, test_f1, outputs_test = self.validate_split(df, input_data, labels, subject_name)
+            outputs_list.append(outputs_test)
+            if self.verbose:
+                print(
+                    f"Subject: {subject_name}, n={outputs_test.shape[0]} | "
                     f"train_f1: {np.mean(train_f1):.4} | "
                     f"test_f1: {np.mean(test_f1):.4}"
                 )
