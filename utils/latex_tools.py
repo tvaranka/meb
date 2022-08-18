@@ -1,7 +1,7 @@
 from typing import List
 import numpy as np
 import pandas as pd
-from utils.utils import MultiTaskF1
+from utils.utils import MultiLabelF1Score
 import torch
 
 
@@ -11,30 +11,29 @@ def list_to_latex(values: list, round_decimals: int = 1) -> str:
 
 
 def results_to_list(
-    outputs_list: List[np.ndarray],
+    outputs_list,
     df: pd.DataFrame,
     action_units: np.ndarray,
+    split: str = "dataset",
+    evaluation=MultiLabelF1Score(average="macro")
 ):
     # Create a copy of action units
     aus = [i for i in action_units]
-    evaluation = MultiTaskF1(len(action_units))
     # Per action units
-    labels = np.concatenate([np.expand_dims(df[au], 1) for au in aus], axis=1)
-    f1_aus = evaluation(torch.cat(outputs_list), labels)
+    labels = np.array(df[action_units])
+    f1_aus = evaluation(labels, torch.cat(outputs_list))
     f1_aus = [au_f1 * 100 for au_f1 in f1_aus]
-    # Per dataset
-    f1_datasets = []
-    for i, dataset_name in enumerate(df["dataset"].unique()):
-        df_dataset = df[df["dataset"] == dataset_name]
-        labels = np.concatenate(
-        [np.expand_dims(df_dataset[au], 1) for au in aus], axis=1
-        )
-        f1_dataset = np.mean(evaluation(outputs_list[i], labels))
-        f1_datasets.append(f1_dataset * 100)
+    # Per split
+    f1_splits = []
+    for i, split_name in enumerate(df[split].unique()):
+        df_split = df[df[split] == split_name]
+        labels = np.array(df_split[action_units])
+        f1_split = np.mean(evaluation(labels, outputs_list[i]))
+        f1_splits.append(f1_split * 100)
     # Add average at the end of both
     f1_aus.append(np.mean(f1_aus))
-    f1_datasets.append(np.mean(f1_datasets))
-    return f1_aus, f1_datasets
+    f1_splits.append(np.mean(f1_splits))
+    return f1_aus, f1_splits
 
 
 def results_to_latex(
