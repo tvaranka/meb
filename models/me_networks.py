@@ -1,11 +1,10 @@
+from typing import List
+
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-from models.model_utils import multi_task
-from typing import List
 
 
-@multi_task
 class SSSNet(nn.Module):
     def __init__(self, output_size: int = 3, h_dims: List[int] = [32, 64, 256],
                  dropout: float = 0.5, softmax=False, **kwargs):
@@ -42,7 +41,6 @@ class SSSNet(nn.Module):
         return x
 
 
-@multi_task
 class STSTNet(nn.Module):
     def __init__(self, in_channels=3, out_channels=3, **kwargs):
         super().__init__()
@@ -69,7 +67,6 @@ class STSTNet(nn.Module):
         return x
 
 
-@multi_task
 class OffApexNet(nn.Module):
     def __init__(self, output_size: int = 3, dropout: float = 0.5, **kwargs):
         super().__init__()

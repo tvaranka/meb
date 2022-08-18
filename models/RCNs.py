@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
-from models.model_utils import multi_task
 
 __all__ = ['RCN_A', 'RCN_S', 'RCN_W', 'RCN_P', 'RCN_C', 'RCN_F']
 
@@ -214,7 +212,6 @@ def MakeLayer(block, planes, blocks):
         layers.append(block(planes, planes))
     return nn.Sequential(*layers)
 
-@multi_task
 class RCN_A(nn.Module):
     """menet networks with adding attention unit
     """
@@ -266,7 +263,7 @@ class RCN_A(nn.Module):
         x = self.fc(x)
         return x
 
-@multi_task
+
 class RCN_S(nn.Module):
     """menet networks with dense shortcut connection
     """
@@ -301,7 +298,6 @@ class RCN_S(nn.Module):
         return x
 
 
-@multi_task
 class RCN_W(nn.Module):
     """menet networks with wide expansion
     """
@@ -356,7 +352,6 @@ class RCN_W(nn.Module):
         return x
 
 
-@multi_task
 class RCN_P(nn.Module):
     """menet networks with hybrid modules by NAS
     """
@@ -407,7 +402,6 @@ class RCN_P(nn.Module):
         return x
 
 
-@multi_task
 class RCN_C(nn.Module):
     """menet networks with cascaded modules
     """
@@ -485,7 +479,6 @@ class RCN_C(nn.Module):
         return x
 
 
-@multi_task
 class RCN_F(nn.Module):
     """menet networks with embedded modules as final fusion way
     """

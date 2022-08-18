@@ -2,10 +2,8 @@ import torchvision.models as models
 import torch.nn as nn
 import torch
 
-from models.model_utils import multi_task
 
 
-@multi_task
 class Resnet18(nn.Module):
     def __init__(self, output_size: int = 3, pretrained: bool = False, **kwargs):
         super().__init__()
@@ -21,7 +19,6 @@ class Resnet18(nn.Module):
         return x
 
 
-@multi_task
 class Resnet18_3D(nn.Module):
     def __init__(self, output_size: int = 3, pretrained: bool = False, **kwargs):
         super().__init__()
@@ -314,7 +311,6 @@ def resnet8(progress=True, **kwargs):
     return _resnet("resnet8", BasicBlock, [1, 1, 1, 1], progress, **kwargs)
 
 
-@multi_task
 class Resnet8(nn.Module):
     def __init__(self, output_size: int = 3, **kwargs):
         super().__init__()
