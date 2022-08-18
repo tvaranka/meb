@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from utils.models.model_utils import multi_task
+from models.model_utils import multi_task
 
 __all__ = ['RCN_A', 'RCN_S', 'RCN_W', 'RCN_P', 'RCN_C', 'RCN_F']
 

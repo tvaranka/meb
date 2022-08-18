@@ -1,4 +1,4 @@
-from experiments.config.dataset_config import config
+from config.dataset_config import config
 from typing import Sequence, Union
 import utils.dataset_utils as dataset_utils
 

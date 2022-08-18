@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-from utils.models.model_utils import multi_task
+from models.model_utils import multi_task
 from typing import List
 
 

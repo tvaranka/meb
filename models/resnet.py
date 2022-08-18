@@ -2,7 +2,7 @@ import torchvision.models as models
 import torch.nn as nn
 import torch
 
-from utils.models.model_utils import multi_task
+from models.model_utils import multi_task
 
 
 @multi_task

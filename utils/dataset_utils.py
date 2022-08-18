@@ -13,7 +13,7 @@ import cv2
 from skimage.transform import resize as sk_resize
 
 from utils.get_image_size import get_image_size
-from experiments.config.dataset_config import config
+from config.dataset_config import config
 from utils import py_evm
 
 
@@ -49,8 +49,7 @@ class LazyDataLoader:
         self.color = color
         self.resize = resize
         self.magnify = magnify
-        if self.magnify:
-            self.magnify_params = kwargs.pop("magnify_params", {"alpha": 10, "r1": 0.4, "r2": 0.05})
+        self.magnify_params = kwargs.pop("magnify_params", {"alpha": 10, "r1": 0.4, "r2": 0.05})
         self.n_sample = n_sample
 
     def __len__(self) -> int:
