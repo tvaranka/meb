@@ -47,6 +47,10 @@ def check_path(cls: config):
         for path in paths:
             modified_path = "../" + getattr(cls, path)
             setattr(cls, path, modified_path)
+    elif "data" in os.listdir("../.."):
+        for path in paths:
+            modified_path = "../../" + getattr(cls, path)
+            setattr(cls, path, modified_path)
     else:
         print("Couldn't find data folder")
     return cls
