@@ -1,3 +1,6 @@
+import os
+
+
 class config:
     """Used as a config file for storing dataset information"""
 
@@ -31,4 +34,23 @@ class config:
     mmew_dataset_path = "data/MMEW/Micro_Expression"
     mmew_optical_flow = "data/MMEW/mmew_uv_frames_secrets_of_OF.npy"
 
+
+def check_path(cls: config):
+    """
+    Checks whether the "data" folder is in the current directory.
+    If not tries to find it.
+    """
+    paths = [path for path in dir(cls) if not path.startswith("__")]
+    if "data" in os.listdir("."):
+        return cls
+    elif "data" in os.listdir("..") and not paths[0].startswith(".."):
+        for path in paths:
+            modified_path = "../" + getattr(cls, path)
+            setattr(cls, path, modified_path)
+    else:
+        print("Couldn't find data folder")
+    return cls
+
+
+config = check_path(config)
 

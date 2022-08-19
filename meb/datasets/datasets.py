@@ -1,6 +1,6 @@
 from config.dataset_config import config
 from typing import Sequence, Union
-import utils.dataset_utils as dataset_utils
+from . import dataset_utils
 
 import numpy as np
 import pandas as pd

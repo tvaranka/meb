@@ -1,7 +1,7 @@
 from typing import List
 import numpy as np
 import pandas as pd
-from utils.utils import MultiLabelF1Score
+from ..utils.utils import MultiLabelF1Score
 import torch
 
 

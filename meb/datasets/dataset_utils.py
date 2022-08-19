@@ -12,9 +12,9 @@ import matplotlib.pyplot as plt
 import cv2
 from skimage.transform import resize as sk_resize
 
-from utils.get_image_size import get_image_size
+from .get_image_size import get_image_size
 from config.dataset_config import config
-from utils import py_evm
+from ..utils import py_evm
 
 
 class LazyDataLoader:
@@ -331,7 +331,7 @@ def only_digit(s: str) -> str:
 
 
 def extract_action_units(df: pd.DataFrame) -> pd.DataFrame:
-    """Exctracts the action units from a single column to individual columns"""
+    """Extracts the action units from a single column to individual columns"""
     df["AU"] = df["AU"].astype("str")
     unique_aus = set(
         chain.from_iterable(
