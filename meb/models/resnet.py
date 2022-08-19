@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch
 
 
-
 class Resnet18(nn.Module):
     def __init__(self, output_size: int = 3, pretrained: bool = False, **kwargs):
         super().__init__()
