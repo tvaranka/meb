@@ -29,11 +29,12 @@ class Validation(ABC):
 
     @abstractmethod
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
-        pass
+        """Overridable method that defines how the validation is done."""
 
     def get_data_loader(
             self, data: np.ndarray, labels: np.ndarray, train: bool
     ) -> torch.utils.data.DataLoader:
+        """Constructs pytorch dataloader from numpy data."""
         transform = self.cf.train_transform if train else self.cf.test_transform
         dataset = utils.MEData(data, labels,
                                transform_spatial=transform["spatial"],
@@ -55,6 +56,7 @@ class Validation(ABC):
         return data[train_idx], labels[train_idx], data[test_idx], labels[test_idx]
 
     def train_model(self, dataloader: torch.utils.data.DataLoader) -> None:
+        """Main training loop. Can be overriden for custom training loops."""
         for epoch in tqdm(range(self.cf.epochs), disable=self.disable_tqdm):
             for batch in dataloader:
                 data_batch, labels_batch = batch[0].to(self.cf.device), batch[1].to(self.cf.device)
@@ -68,6 +70,7 @@ class Validation(ABC):
                 self.scheduler.step()
 
     def validate_split(self, df: pd.DataFrame, input_data: np.ndarray, labels: np.ndarray, split_name: str):
+        """Main setup of each split. Should be called by the overriden validate method."""
         train_data, train_labels, test_data, test_labels = self.split_data(
             df[self.split_column], input_data, labels, split_name
         )
