@@ -72,9 +72,7 @@ class Validation(ABC):
         train_loader = self.get_data_loader(train_data, train_labels, train=True)
         test_loader = self.get_data_loader(test_data, test_labels, train=False)
         self.cf.model.apply(utils.reset_weights)
-        self.optimizer = self.cf.optimizer(
-            self.cf.model.parameters(), lr=self.cf.learning_rate, weight_decay=self.cf.weight_decay
-        )
+        self.optimizer = self.cf.optimizer(self.cf.model.parameters())
         self.train_model(train_loader)
         train_f1 = self.evaluate_model(train_loader)
         test_f1, outputs_test = self.evaluate_model(test_loader, test=True)
