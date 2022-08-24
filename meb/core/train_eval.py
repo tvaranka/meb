@@ -35,12 +35,17 @@ class Validation(ABC):
             self, data: np.ndarray, labels: np.ndarray, train: bool
     ) -> torch.utils.data.DataLoader:
         """Constructs pytorch dataloader from numpy data."""
-        transform = self.cf.train_transform if train else self.cf.test_transform
+        if train:
+            transform = self.cf.train_transform
+            batch_size = self.cf.batch_size
+        else:
+            transform = self.cf.test_transform
+            batch_size = self.cf.batch_size // 4
         dataset = utils.MEData(data, labels,
                                transform_spatial=transform["spatial"],
                                transform_temporal=transform["temporal"])
         dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=self.cf.batch_size, shuffle=train, num_workers=0, pin_memory=True
+            dataset, batch_size=batch_size, shuffle=train, num_workers=0, pin_memory=True
         )
         return dataloader
 
