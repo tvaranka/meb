@@ -337,7 +337,6 @@ class MEGC(dataset_utils.Dataset):
         # Add frame and apex information
         df["n_frames"] = df["n_frames"].astype(int)
         df.insert(5, "apexf", df["apex"] - df["onset"])
-        df.loc[df["dataset"] == "smic", "apexf"] = df.loc[df["dataset"] == "smic", "apex"]
         # Drop AUs and other information from the dataframe
         aus = df.columns[["AU" in column for column in df.columns]]
         df = df.drop(aus, axis=1)
