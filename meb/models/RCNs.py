@@ -216,7 +216,7 @@ class RCN_A(nn.Module):
     """menet networks with adding attention unit
     """
     def __init__(self, num_input, featuremaps, num_classes, num_layers=1, pool_size=5, model_version=3, **kwargs):
-        super(RCN_A, self).__init__()
+        super().__init__()
         self.version = model_version
         self.classes = num_classes
         self.conv1 = nn.Sequential(
@@ -255,7 +255,7 @@ class RCN_A(nn.Module):
             x = self.avgpool(x)
         elif self.version == 3:
             x = self.conv1(x)
-            y = self.attenmap(self.downsampling(x), self.classifier.weight, self.classes)
+            y = self.attenmap(self.downsampling(x), self.fc.weight, self.classes)
             x = self.rcls(x)
             x = self.avgpool(x)
             x = x * y
