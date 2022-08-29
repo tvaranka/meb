@@ -43,7 +43,7 @@ class LazyDataLoader:
     """
     def __init__(
         self, data_path: List[List[str]], color: bool = False,
-            resize=None, n_sample: int = 6, magnify: bool = False, **kwargs
+            resize=None, n_sample: int = 8, magnify: bool = False, **kwargs
     ) -> None:
         self.data_path = data_path
         self.color = color
@@ -138,6 +138,7 @@ class LoadedDataLoader:
             self.data_path = data_in.data_path
             self.n_sample = data_in.n_sample
         else:
+            self.data_path = None
             self.data = data_in
             self.n_sample = n_sample
 
@@ -160,7 +161,9 @@ class LoadedDataLoader:
             return new
 
     def __repr__(self) -> str:
-        return f"LoadedDataLoader with {len(self)} items from {self.data_path[0][0]}"
+        if self.data_path:
+            return f"LoadedDataLoader with {len(self)} items from {self.data_path[0][0]}"
+        return f"LoadedDataLoader with {len(self)} items"
 
     def get_video_sampled(self, index: int, sampling_func: Callable = None):
         if not isinstance(index, int):
@@ -287,11 +290,13 @@ class Dataset(ABC):
         dataset_path = getattr(config, f"{self.dataset_name}{crop_str}_dataset_path")
         format_path = dataset_path + self.dataset_path_format
         video_paths = get_video_paths(format_path, self.data_frame)
+
         dataset = LazyDataLoader(video_paths, color=self.color, resize=self.resize,
-                                 n_sample=self.n_sample, magnify=self.magnify, magnify_params=self.magnify_params
-        )
+                                 n_sample=self.n_sample, magnify=self.magnify, magnify_params=self.magnify_params)
+
         if self.preload:
             dataset = LoadedDataLoader(dataset)
+
         return dataset
 
     def __getitem__(self, index: Union[int, Sequence, slice]) -> Tuple[pd.Series, Union[LazyDataLoader, np.ndarray]]:
@@ -311,14 +316,15 @@ class Dataset(ABC):
                 of_frames_list.append(of_frames)
             of_frames = np.concatenate(of_frames_list)
             return of_frames
-
         data_paths = [video_path for dataset in self.datasets for video_path in
                       dataset.data.data_path
         ]
-        dataset = LazyDataLoader(data_paths, self.color, self.resize, self.n_sample,
-                                 magnify=self.magnify, magnify_params=self.magnify_params)
+
         if self.preload:
-            dataset = LoadedDataLoader(dataset)
+            dataset = LoadedDataLoader(list(chain.from_iterable(dataset.data for dataset in self.datasets)))
+        else:
+            dataset = LazyDataLoader(data_paths, self.color, self.resize, self.n_sample,
+                                     magnify=self.magnify, magnify_params=self.magnify_params)
         return dataset
 
     def __repr__(self):
