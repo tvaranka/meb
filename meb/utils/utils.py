@@ -9,27 +9,37 @@ from sklearn.metrics import f1_score
 
 
 class MEData(Dataset):
-    def __init__(self, frames: Union[np.ndarray, "CustomDataset"], labels: np.ndarray,
-                 transform_temporal=None, transform_spatial=None):
+    def __init__(self, frames: np.ndarray, labels: np.ndarray,
+                 temporal_transform=None, spatial_transform=None):
         self.frames = frames
         self.labels = labels
-        self.transform_temporal = transform_temporal
-        self.transform_spatial = transform_spatial
+        self.temporal_transform = temporal_transform
+        self.spatial_transform = spatial_transform
 
     def __len__(self):
         return len(self.frames)
 
-    def __getitem__(self, idx: int) -> Tuple[np.ndarray, np.ndarray]:
-        if self.transform_temporal:
-            sample = self.frames.get_video_sampled(idx, self.transform_temporal)
-            if len(sample.shape) == 3: # Grayscale, pad dims
-                sample = np.expand_dims(sample, 0)
+    def __getitem__(self, idx: int):
+        sample = self.frames[idx]
+        if len(sample.shape) == 4:  # Video
+            sample = torch.tensor(sample)
+            if self.temporal_transform:
+                sample = self.temporal_transform(sample)
+            if self.spatial_transform:
+                sample = sample.permute(0, 3, 1, 2)  # THWC -> TCHW
+                for i in range(len(sample)):
+                    sample[i] = self.spatial_transform(sample[i])
+                sample = sample.permute(0, 2, 3, 1)  # TCHW -> THWC
+            sample = sample.permute(3, 0, 1, 2)  # THWC -> CTHW
+
+        elif len(sample.shape) == 3:  # Optical flow
+            if self.spatial_transform:
+                sample = torch.tensor(sample * 255.0).type(torch.uint8)
+                sample = self.spatial_transform(sample)
+                sample = (sample / 255.0).type(torch.float32)
         else:
-            sample = self.frames[idx]
-        if self.transform_spatial:
-            sample = torch.tensor(sample * 255.0).type(torch.uint8)
-            sample = self.transform_spatial(sample)
-            sample = (sample / 255.0).type(torch.float32)
+            raise NotImplementedError("Only works for len(video.shape) == 3 or 4")
+
         label = self.labels[idx]
         return sample, label
 
