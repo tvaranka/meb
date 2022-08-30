@@ -34,6 +34,9 @@ class config:
     mmew_dataset_path = "data/MMEW/Micro_Expression"
     mmew_optical_flow = "data/MMEW/mmew_uv_frames_secrets_of_OF.npy"
 
+    casme3_excel_path = "data/CASME3/cas(me)3_part_A_ME_label_JpgIndex_v2.xlsx"
+    casme3_dataset_path = "data/CASME3/ME_A"
+
 
 def check_path(cls: config):
     """

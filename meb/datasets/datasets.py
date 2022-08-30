@@ -248,6 +248,53 @@ class MMEW(dataset_utils.Dataset):
         return df
 
 
+class Casme3(dataset_utils.Dataset):
+    def __init__(
+            self,
+            color: bool = False,
+            resize: Union[Sequence[int], int, None] = None,
+            cropped: bool = True,
+            optical_flow: bool = False,
+            **kwargs
+    ) -> None:
+        self.dataset_name = type(self).__name__.lower()
+        self.dataset_path_format = "/{subject}/{material}/color/"
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
+
+    @property
+    def data_frame(self) -> pd.DataFrame:
+        df = pd.read_excel(config.casme3_excel_path)
+        df = df.rename({"Subject": "subject", "Filename": "material", "Onset": "onset",
+                        "Apex": "apex", "Offset": "offset"}, axis=1)
+        df = self._seperate_duplicate_materials(df)
+        df.loc[128, "apex"] = 160
+        df.loc[749, "onset"] = 2647
+        df.loc[[796, 798], "offset"] = [1845, 2403]
+        df = dataset_utils.extract_action_units(df)
+        df["n_frames"] = df["offset"] - df["onset"] + 1
+        return df
+
+    @staticmethod
+    def _seperate_duplicate_materials(df):
+        def remove_nums(string: str) -> str:
+            return "".join([s for s in string if not s.isdigit()])
+
+        # For subjects with the same filename add number to seperate them
+        num = 2
+        for i in range(df.shape[0] - 1):
+            # check if this and next are the same or not
+            if remove_nums(df.loc[i, "material"]) == df.loc[i + 1, "material"]:
+                # Check if subject is the same
+                if df.loc[i, "subject"] == df.loc[i + 1, "subject"]:
+                    df.loc[i + 1, "material"] = df.loc[i + 1, "material"] + str(num)
+                    num += 1
+                else:
+                    num = 2
+            else:
+                num = 2
+        return df
+
+
 class CrossDataset(dataset_utils.Dataset):
     def __init__(
             self,
