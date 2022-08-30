@@ -99,12 +99,13 @@ class Validation(ABC):
         self.cf.model.eval()
         outputs_list = []
         labels_list = []
-        for batch in dataloader:
-            data_batch = batch[0].to(self.cf.device)
-            labels_batch = batch[1]
-            outputs = self.cf.model(data_batch.float())
-            outputs_list.append(outputs.detach().cpu())
-            labels_list.append(labels_batch)
+        with torch.no_grad():
+            for batch in dataloader:
+                data_batch = batch[0].to(self.cf.device)
+                labels_batch = batch[1]
+                outputs = self.cf.model(data_batch.float())
+                outputs_list.append(outputs.detach().cpu())
+                labels_list.append(labels_batch)
         self.cf.model.train()
         predictions = torch.cat(outputs_list)
         labels = torch.cat(labels_list)
