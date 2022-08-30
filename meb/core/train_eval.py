@@ -1,14 +1,14 @@
-from functools import partial
 from abc import ABC, abstractmethod
 from tqdm import tqdm
+from typing import Tuple, List, Union
 
 import numpy as np
 import torch
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
+
 from ..utils import utils
 from ..datasets import latex_tools as lt
-from typing import Tuple, List, Union
-from sklearn.preprocessing import LabelEncoder
 
 
 class Config:
@@ -42,8 +42,8 @@ class Validation(ABC):
             transform = self.cf.test_transform
             batch_size = self.cf.batch_size // 4
         dataset = utils.MEData(data, labels,
-                               transform_spatial=transform["spatial"],
-                               transform_temporal=transform["temporal"])
+                               spatial_transform=transform["spatial"],
+                               temporal_transform=transform["temporal"])
         dataloader = torch.utils.data.DataLoader(
             dataset, batch_size=batch_size, shuffle=train, num_workers=0, pin_memory=True
         )

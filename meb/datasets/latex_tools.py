@@ -1,8 +1,10 @@
 from typing import List
+
 import numpy as np
 import pandas as pd
-from ..utils.utils import MultiLabelF1Score
 import torch
+
+from ..utils.utils import MultiLabelF1Score
 
 
 def list_to_latex(values: list, round_decimals: int = 1) -> str:
