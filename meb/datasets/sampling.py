@@ -47,8 +47,8 @@ class NoisyUniformTemporalSubsample(BaseTemporalSubSample):
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         self._check_validity(x)
-        indices = np.linspace(0, self.t - 1, self.num_samples)
         if self.noise_level == "auto":
-            perturb = np.ones(self.num_samples)
-        indices = np.clip(indices + perturb, 0, self.t - 1).astype("int")
+            max_f = np.random.randint(self.num_samples, self.t - 1)
+        indices = np.linspace(0, max_f, self.num_samples)
+        indices = np.clip(indices, 0, self.t - 1).astype("int")
         return np.take(x, indices, self.temporal_dim)
