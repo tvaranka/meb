@@ -24,10 +24,10 @@ class config:
     samm_dataset_path = "data/SAMM/SAMM"
     samm_optical_flow = "data/SAMM/samm_uv_frames_secrets_of_OF.npy"
 
-    fourDmicro_excel_path = "data/4DMicro/4DME_Labelling_Micro_release v1.xlsx"
-    fourDmicro_cropped_dataset_path = "data/4DMicro/gray_micro_crop"
-    fourDmicro_dataset_path = "data/4DMicro/gray_micro"
-    fourDmicro_optical_flow = "data/4DMicro/4d_uv_frames_secrets_of_OF.npy"
+    fourd_excel_path = "data/4DMicro/4DME_Labelling_Micro_release v1.xlsx"
+    fourd_cropped_dataset_path = "data/4DMicro/gray_micro_crop"
+    fourd_dataset_path = "data/4DMicro/gray_micro"
+    fourd_optical_flow = "data/4DMicro/4d_uv_frames_secrets_of_OF.npy"
 
     mmew_excel_path = "data/MMEW/MMEW_Micro_Exp.xlsx"
     mmew_cropped_dataset_path = "data/MMEW/Micro_Expression"
@@ -36,6 +36,8 @@ class config:
 
     casme3_excel_path = "data/CASME3/cas(me)3_part_A_ME_label_JpgIndex_v2.xlsx"
     casme3_dataset_path = "data/CASME3/ME_A"
+    casme3_cropped_dataset_path = "data/CASME3/ME_A_cropped"
+    casme3_optical_flow = "data/CASME3/casme3_uv_frames_secrets_of_OF.npy"
 
 
 def check_path(cls: config):

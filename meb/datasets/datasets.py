@@ -165,7 +165,7 @@ class SAMM(dataset_utils.Dataset):
         return df
 
 
-class FourDMicro(dataset_utils.Dataset):
+class Fourd(dataset_utils.Dataset):
     def __init__(
             self,
             color: bool = False,
@@ -174,13 +174,13 @@ class FourDMicro(dataset_utils.Dataset):
             optical_flow: bool = False,
             **kwargs
     ) -> None:
-        self.dataset_name = "fourDmicro"
+        self.dataset_name = "fourd"
         self.dataset_path_format = "/{subject}/{material}/"
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
     def data_frame(self) -> pd.DataFrame:
-        df = pd.read_excel(config.fourDmicro_excel_path)
+        df = pd.read_excel(config.fourd_excel_path)
         df = df.rename(
             columns={
                 "sub_ID": "subject",
@@ -309,7 +309,7 @@ class CrossDataset(dataset_utils.Dataset):
         self.dataset_name = ""
         self.dataset_path_format = ""
         self.datasets = [dataset(cropped=cropped, color=color, resize=resize, optical_flow=optical_flow, **kwargs)
-                         for dataset in [Casme, Casme2, SAMM, FourDMicro, MMEW]]
+                         for dataset in [Casme, Casme2, SAMM, Fourd, MMEW, Casme3]]
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
@@ -326,7 +326,7 @@ class CrossDataset(dataset_utils.Dataset):
         df = pd.concat(cross_dataset_dfs, axis=0, sort=False)
         df = df.drop(["ApexF2", "index", "Inducement Code", "Duration", "Micro", "Objective Classes",
                       "Notes", "fold", "eye blink", "Positive", "Negative", "Surprise", "Repression", "Others",
-                      "Onset", "Total", "apexf"
+                      "Onset", "Total", "apexf", "Objective class"
                       ], axis=1,
                      )
         df = df.reset_index().drop("index", axis=1)

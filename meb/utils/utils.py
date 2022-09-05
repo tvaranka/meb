@@ -129,6 +129,6 @@ dataset_aus = {
     "casme": ["AU1", "AU4", "AU9", "AU14"],
     "samm": ["AU2", "AU4", "AU7", "AU12"],
     "mmew": ["AU1", "AU2", "AU4", "AU5", "AU7", "AU10", "AU12", "AU14"],
-    "fourDmicro": ["AU1", "AU2", "AU4", "AU6", "AU7", "AU12", "AU17", "AU45"],
+    "fourd": ["AU1", "AU2", "AU4", "AU6", "AU7", "AU12", "AU17", "AU45"],
     "cross": ["AU1", "AU2", "AU4", "AU5", "AU6", "AU7", "AU9", "AU10", "AU12", "AU14", "AU15", "AU17"],
 }
