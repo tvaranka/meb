@@ -34,10 +34,10 @@ class config:
     mmew_dataset_path = "data/MMEW/Micro_Expression"
     mmew_optical_flow = "data/MMEW/mmew_uv_frames_secrets_of_OF.npy"
 
-    casme3_excel_path = "data/CASME3/cas(me)3_part_A_ME_label_JpgIndex_v2.xlsx"
-    casme3_dataset_path = "data/CASME3/ME_A"
-    casme3_cropped_dataset_path = "data/CASME3/ME_A_cropped"
-    casme3_optical_flow = "data/CASME3/casme3_uv_frames_secrets_of_OF.npy"
+    casme3a_excel_path = "data/CASME3/cas(me)3_part_A_ME_label_JpgIndex_v2.xlsx"
+    casme3a_dataset_path = "data/CASME3/ME_A"
+    casme3a_cropped_dataset_path = "data/CASME3/ME_A_cropped"
+    casme3a_optical_flow = "data/CASME3/casme3_uv_frames_secrets_of_OF.npy"
 
     casme3c_excel_path = "data/CASME3/CAS(ME)3_part_C_ME.xlsx"
     casme3c_dataset_path = "data/CASME3/ME_C"
