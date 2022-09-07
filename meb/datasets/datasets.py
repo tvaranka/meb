@@ -297,6 +297,31 @@ class Casme3(dataset_utils.Dataset):
         return df
 
 
+class Casme3C(dataset_utils.Dataset):
+    def __init__(
+            self,
+            color: bool = False,
+            resize: Union[Sequence[int], int, None] = None,
+            cropped: bool = True,
+            optical_flow: bool = False,
+            **kwargs
+    ) -> None:
+        self.dataset_name = type(self).__name__.lower()
+        self.dataset_path_format = "/{subject}/{material}/color/"
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
+
+    @property
+    def data_frame(self) -> pd.DataFrame:
+        df = pd.read_excel(config.casme3c_excel_path)
+        df = df.rename({"sub": "subject", "count": "material", "au": "AU"}, axis=1)
+        df["AU"] = df["AU"].apply(lambda x: str(x).replace(",", "+"))
+        df["subject"] = df["subject"].apply(lambda x: str(x).zfill(2))
+        df["apex"] = ((df["offset"] + df["onset"]) / 2).astype("int")
+        df["n_frames"] = df["offset"] - df["onset"] + 1
+        df = dataset_utils.extract_action_units(df)
+        return df
+
+
 class CrossDataset(dataset_utils.Dataset):
     def __init__(
             self,

@@ -39,6 +39,11 @@ class config:
     casme3_cropped_dataset_path = "data/CASME3/ME_A_cropped"
     casme3_optical_flow = "data/CASME3/casme3_uv_frames_secrets_of_OF.npy"
 
+    casme3c_excel_path = "data/CASME3/CAS(ME)3_part_C_ME.xlsx"
+    casme3c_dataset_path = "data/CASME3/ME_C"
+    casme3c_cropped_dataset_path = "data/CASME3/ME_C_cropped"
+    casme3c_optical_flow = "data/CASME3/casme3c_uv_frames_secrets_of_OF.npy"
+
 
 def check_path(cls: config):
     """
