@@ -6,3 +6,6 @@ scikit-image
 matplotlib
 pandas
 numpy
+
+setuptools~=63.4.1
+zlib~=1.2.12
