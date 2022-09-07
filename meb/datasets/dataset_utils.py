@@ -4,7 +4,7 @@ from itertools import chain
 from typing import List, Tuple, Sequence, Union, Callable
 from abc import ABC, abstractmethod
 from tqdm import tqdm
-import functools
+from functools import cached_property
 
 import pandas as pd
 import numpy as np
@@ -269,7 +269,7 @@ class Dataset(ABC):
         if not self.optical_flow and self.dataset_name and not ignore_validation:
             validate_dataset(self.data_frame, self.data)
 
-    @property
+    @cached_property
     @abstractmethod
     def data_frame(self) -> pd.DataFrame:
         """
@@ -277,8 +277,7 @@ class Dataset(ABC):
         and generates additional features.
         """
 
-    @property
-    @functools.lru_cache()
+    @cached_property
     def data(self) -> Union[np.ndarray, LazyDataLoader]:
         """
         Loads the dataset given a path. If the optical_flow flag is set to True, a numpy array is returned, else

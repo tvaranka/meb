@@ -2,6 +2,8 @@ from config.dataset_config import config
 from typing import Sequence, Union
 from . import dataset_utils
 
+from functools import cached_property
+
 import numpy as np
 import pandas as pd
 
@@ -19,7 +21,7 @@ class Smic(dataset_utils.Dataset):
         self.dataset_path_format = "/{subject}/micro/{emotion}/{material}/"
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
-    @property
+    @cached_property
     def data_frame(self) -> pd.DataFrame:
         df = pd.read_excel(config.smic_excel_path)
         df = df.drop("Unnamed: 0", axis=1)
@@ -42,7 +44,7 @@ class Casme(dataset_utils.Dataset):
         self.dataset_path_format = "/sub{subject}/{material}/"
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
-    @property
+    @cached_property
     def data_frame(self) -> pd.DataFrame:
         df = pd.read_excel(config.casme_excel_path)
         df = df.drop(["Unnamed: 2", "Unnamed: 7"], axis=1)
@@ -81,7 +83,7 @@ class Casme2(dataset_utils.Dataset):
         self.dataset_path_format = "/sub{subject}/{material}/"
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
-    @property
+    @cached_property
     def data_frame(self) -> pd.DataFrame:
         df = pd.read_excel(config.casme2_excel_path)
         df = df.drop(["Unnamed: 2", "Unnamed: 6"], axis=1)
@@ -127,7 +129,7 @@ class SAMM(dataset_utils.Dataset):
         self.dataset_path_format = "/{subject}/{material}/"
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
-    @property
+    @cached_property
     def data_frame(self) -> pd.DataFrame:
         df = pd.read_excel(config.samm_excel_path)
         # Preprocess the dataframe as it contains some text
@@ -178,7 +180,7 @@ class Fourd(dataset_utils.Dataset):
         self.dataset_path_format = "/{subject}/{material}/"
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
-    @property
+    @cached_property
     def data_frame(self) -> pd.DataFrame:
         df = pd.read_excel(config.fourd_excel_path)
         df = df.rename(
@@ -222,7 +224,7 @@ class MMEW(dataset_utils.Dataset):
         self.dataset_path_format = "/{emotion}/{material}/"
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
-    @property
+    @cached_property
     def data_frame(self) -> pd.DataFrame:
         df = pd.read_excel(config.mmew_excel_path)
         df = df.drop("remarks", axis=1)
@@ -248,7 +250,7 @@ class MMEW(dataset_utils.Dataset):
         return df
 
 
-class Casme3(dataset_utils.Dataset):
+class Casme3A(dataset_utils.Dataset):
     def __init__(
             self,
             color: bool = False,
@@ -261,9 +263,9 @@ class Casme3(dataset_utils.Dataset):
         self.dataset_path_format = "/{subject}/{material}/color/"
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
-    @property
+    @cached_property
     def data_frame(self) -> pd.DataFrame:
-        df = pd.read_excel(config.casme3_excel_path)
+        df = pd.read_excel(config.casme3a_excel_path)
         df = df.rename({"Subject": "subject", "Filename": "material", "Onset": "onset",
                         "Apex": "apex", "Offset": "offset"}, axis=1)
         df = self._seperate_duplicate_materials(df)
@@ -297,6 +299,7 @@ class Casme3(dataset_utils.Dataset):
         return df
 
 
+
 class Casme3C(dataset_utils.Dataset):
     def __init__(
             self,
@@ -310,15 +313,59 @@ class Casme3C(dataset_utils.Dataset):
         self.dataset_path_format = "/{subject}/{material}/color/"
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
-    @property
+    @cached_property
     def data_frame(self) -> pd.DataFrame:
         df = pd.read_excel(config.casme3c_excel_path)
         df = df.rename({"sub": "subject", "count": "material", "au": "AU"}, axis=1)
+        # replace chinese comma with standard one for sample 16
+        df.loc[16, "AU"] = df.loc[16, "AU"].replace("，", ",")
         df["AU"] = df["AU"].apply(lambda x: str(x).replace(",", "+"))
         df["subject"] = df["subject"].apply(lambda x: str(x).zfill(2))
         df["apex"] = ((df["offset"] + df["onset"]) / 2).astype("int")
         df["n_frames"] = df["offset"] - df["onset"] + 1
         df = dataset_utils.extract_action_units(df)
+        return df
+
+
+class Casme3(dataset_utils.Dataset):
+    def __init__(
+            self,
+            color: bool = False,
+            resize: Union[Sequence[int], int, None] = None,
+            cropped: bool = True,
+            optical_flow: bool = False,
+            **kwargs
+    ) -> None:
+        self.dataset_name = ""
+        self.dataset_path_format = ""
+        self.datasets = [dataset(cropped=cropped, color=color, resize=resize, optical_flow=optical_flow, **kwargs)
+                         for dataset in [Casme3A, Casme3C]]
+        super().__init__(color, resize, cropped, optical_flow, **kwargs)
+
+    @property
+    def data(self) -> Union[np.ndarray, dataset_utils.LazyDataLoader]:
+        return self.multi_dataset_data()
+
+    @cached_property
+    def data_frame(self) -> pd.DataFrame:
+        dataset_dfs = []
+        for dataset in self.datasets:
+            df = dataset.data_frame
+            df.insert(9, "dataset", dataset.dataset_name)
+            dataset_dfs.append(df)
+        df = pd.concat(dataset_dfs, axis=0, sort=False)
+        df = df.reset_index().drop("index", axis=1)
+        df["n_frames"] = df["n_frames"].astype(int)
+        # Sort action units
+        aus_sorted = sorted(df.loc[:, "AU1":].columns, key=lambda x: int(x[2:]))
+        meta_columns = df.loc[:, :"dataset"].columns.tolist()
+        columns_sorted = meta_columns + aus_sorted
+        df = df[columns_sorted]
+        # Add apex from starting 0
+        df.insert(5, "apexf", df["apex"] - df["onset"])
+        # Fill empty action units
+        df = df.fillna(0)
+        df.loc[:, "AU1":] = df.loc[:, "AU1":].astype(int)
         return df
 
 
@@ -341,12 +388,13 @@ class CrossDataset(dataset_utils.Dataset):
     def data(self) -> Union[np.ndarray, dataset_utils.LazyDataLoader]:
         return self.multi_dataset_data()
 
-    @property
+    @cached_property
     def data_frame(self) -> pd.DataFrame:
         cross_dataset_dfs = []
         for dataset in self.datasets:
             df = dataset.data_frame
-            df.insert(11, "dataset", dataset.dataset_name)
+            if "dataset" not in df:
+                df.insert(11, "dataset", dataset.dataset_name)
             cross_dataset_dfs.append(df)
         df = pd.concat(cross_dataset_dfs, axis=0, sort=False)
         df = df.drop(["ApexF2", "index", "Inducement Code", "Duration", "Micro", "Objective Classes",
@@ -391,7 +439,7 @@ class MEGC(dataset_utils.Dataset):
         indices_to_keep = [i for i in range(len(all_data)) if i not in indices_to_remove]
         return all_data[indices_to_keep]
 
-    @property
+    @cached_property
     def data_frame(self) -> pd.DataFrame:
         df, _ = self.get_data_frame_and_indices()
         return df
