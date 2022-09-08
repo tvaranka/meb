@@ -67,7 +67,7 @@ class Validation(ABC):
                 data_batch, labels_batch = batch[0].to(self.cf.device), batch[1].to(self.cf.device)
                 self.optimizer.zero_grad()
 
-                outputs = self.cf.model(data_batch.float())
+                outputs = self.model(data_batch.float())
                 loss = self.cf.criterion(outputs, labels_batch.long())
                 loss.backward()
                 self.optimizer.step()
@@ -81,8 +81,9 @@ class Validation(ABC):
         )
         train_loader = self.get_data_loader(train_data, train_labels, train=True)
         test_loader = self.get_data_loader(test_data, test_labels, train=False)
-        self.cf.model.apply(utils.reset_weights)
-        self.optimizer = self.cf.optimizer(self.cf.model.parameters())
+        self.model = self.cf.model()
+        self.model.to(self.cf.device)
+        self.optimizer = self.cf.optimizer(self.model.parameters())
         self.scheduler = self.cf.scheduler(self.optimizer) if self.cf.scheduler else None
         self.train_model(train_loader)
         train_f1 = self.evaluate_model(train_loader)
@@ -96,17 +97,17 @@ class Validation(ABC):
         the evaluation result and if boolean test is set to true also the
         predictions.
         """
-        self.cf.model.eval()
+        self.model.eval()
         outputs_list = []
         labels_list = []
         with torch.no_grad():
             for batch in dataloader:
                 data_batch = batch[0].to(self.cf.device)
                 labels_batch = batch[1]
-                outputs = self.cf.model(data_batch.float())
+                outputs = self.model(data_batch.float())
                 outputs_list.append(outputs.detach().cpu())
                 labels_list.append(labels_batch)
-        self.cf.model.train()
+        self.model.train()
         predictions = torch.cat(outputs_list)
         labels = torch.cat(labels_list)
         result = self.cf.evaluation(labels, predictions)
@@ -122,7 +123,7 @@ class CrossDatasetValidation(Validation):
 
     def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config)
-        self.verbose = True
+        self.verbose = verbose
         self.split_column = "dataset"
 
     def validate_n_times(self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5) -> None:
@@ -153,9 +154,7 @@ class CrossDatasetValidation(Validation):
         dataset_names = df["dataset"].unique()
         # Create a boolean array with the AUs
         labels = np.concatenate([np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1)
-        number_of_tasks = labels.shape[1]
         outputs_list = []
-        model = self.cf.model.to(self.cf.device)
         for dataset_name in dataset_names:
             train_f1, test_f1, outputs_test = self.validate_split(df, input_data, labels, dataset_name)
             outputs_list.append(outputs_test)
@@ -179,7 +178,7 @@ class CrossDatasetValidation(Validation):
 class IndividualDatasetAUValidation(Validation):
     def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config)
-        self.verbose = True
+        self.verbose = verbose
         self.split_column = "subject"
         self.disable_tqdm = True
 
@@ -210,7 +209,6 @@ class IndividualDatasetAUValidation(Validation):
         subject_names = df["subject"].unique()
         labels = np.concatenate([np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1)
         outputs_list = []
-        model = self.cf.model.to(self.cf.device)
         for subject_name in subject_names:
             train_f1, test_f1, outputs_test = self.validate_split(df, input_data, labels, subject_name)
             outputs_list.append(outputs_test)
@@ -234,7 +232,7 @@ class IndividualDatasetAUValidation(Validation):
 class MEGCValidation(Validation):
     def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config)
-        self.verbose = True
+        self.verbose = verbose
         self.split_column = "subject"
         self.disable_tqdm = True
 
@@ -244,7 +242,6 @@ class MEGCValidation(Validation):
         le = LabelEncoder()
         labels = le.fit_transform(df["emotion"])
         outputs_list = []
-        model = self.cf.model.to(self.cf.device)
         for subject_name in subject_names:
             train_f1, test_f1, outputs_test = self.validate_split(df, input_data, labels, subject_name)
             outputs_list.append(outputs_test)
