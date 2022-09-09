@@ -63,6 +63,7 @@ class Validation(ABC):
     def train_model(self, dataloader: torch.utils.data.DataLoader) -> None:
         """Main training loop. Can be overriden for custom training loops."""
         for epoch in tqdm(range(self.cf.epochs), disable=self.disable_tqdm):
+            num_updates = epoch * len(dataloader)
             for batch in dataloader:
                 data_batch, labels_batch = batch[0].to(self.cf.device), batch[1].to(self.cf.device)
                 self.optimizer.zero_grad()
@@ -71,8 +72,11 @@ class Validation(ABC):
                 loss = self.cf.criterion(outputs, labels_batch.long())
                 loss.backward()
                 self.optimizer.step()
+                num_updates += 1
+                if self.scheduler:
+                    self.scheduler.step_update(num_updates=num_updates)
             if self.scheduler:
-                self.scheduler.step()
+                self.scheduler.step(epoch + 1)
 
     def validate_split(self, df: pd.DataFrame, input_data: np.ndarray, labels: np.ndarray, split_name: str):
         """Main setup of each split. Should be called by the overriden validate method."""
