@@ -34,9 +34,8 @@ class MEData(Dataset):
 
         elif len(sample.shape) == 3:  # Optical flow
             if self.spatial_transform:
-                sample = torch.tensor(sample * 255.0).type(torch.uint8)
+                sample = torch.tensor(sample)
                 sample = self.spatial_transform(sample)
-                sample = (sample / 255.0).type(torch.float32)
         else:
             raise NotImplementedError("Only works for len(video.shape) == 3 or 4")
 
