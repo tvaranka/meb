@@ -6,6 +6,9 @@ import numpy as np
 import torch
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
+from functools import partial
+from torch import optim
+from timm.scheduler.cosine_lr import CosineLRScheduler
 
 from ..utils import utils
 from ..datasets import latex_tools as lt
@@ -15,6 +18,18 @@ class Config:
     """
     Used to store config values.
     """
+    device = torch.device("cuda:0")
+    epochs = 200
+    criterion = utils.MultiLabelBCELoss()
+    evaluation = utils.MultiLabelF1Score(average="macro")
+    # Optimizer
+    optimizer = partial(optim.AdamW, lr=5e-4, weight_decay=5e-2)
+    scheduler = partial(CosineLRScheduler, t_initial=epochs, warmup_lr_init=1e-6, warmup_t=20, lr_min=1e-6)
+    # Dataloader
+    batch_size = 32
+    train_transform = {"spatial": None,"temporal": None}
+    test_transform = {"spatial": None, "temporal": None}
+    mixup_fn = None
 
 
 class Validation(ABC):
