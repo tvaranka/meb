@@ -381,7 +381,7 @@ class CrossDataset(dataset_utils.Dataset):
         self.dataset_name = ""
         self.dataset_path_format = ""
         self.datasets = [dataset(cropped=cropped, color=color, resize=resize, optical_flow=optical_flow, **kwargs)
-                         for dataset in [Casme, Casme2, SAMM, Fourd, MMEW, Casme3]]
+                         for dataset in [Casme, Casme2, SAMM, Fourd, MMEW, Casme3A, Casme3C]]
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
