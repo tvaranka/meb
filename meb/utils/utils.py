@@ -27,8 +27,8 @@ class MEData(Dataset):
                 sample = self.temporal_transform(sample)
             if self.spatial_transform:
                 sample = sample.permute(0, 3, 1, 2)  # THWC -> TCHW
-                for i in range(len(sample)):
-                    sample[i] = self.spatial_transform(sample[i])
+                # Assumes that the transform is for video, e.g., pytorchvideo
+                sample = self.spatial_transform(sample)
                 sample = sample.permute(0, 2, 3, 1)  # TCHW -> THWC
             sample = sample.permute(3, 0, 1, 2)  # THWC -> CTHW
 
