@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from tqdm import tqdm
 from typing import Tuple, List, Union
+from datetime import datetime
 
 import numpy as np
 import torch
@@ -18,6 +19,7 @@ class Config:
     """
     Used to store config values.
     """
+    print_loss = False
     device = torch.device("cuda:0")
     epochs = 200
     criterion = utils.MultiLabelBCELoss()
@@ -27,7 +29,7 @@ class Config:
     scheduler = partial(CosineLRScheduler, t_initial=epochs, warmup_lr_init=1e-6, warmup_t=20, lr_min=1e-6)
     # Dataloader
     batch_size = 32
-    train_transform = {"spatial": None,"temporal": None}
+    train_transform = {"spatial": None, "temporal": None}
     test_transform = {"spatial": None, "temporal": None}
     mixup_fn = None
 
@@ -79,7 +81,7 @@ class Validation(ABC):
         """Main training loop. Can be overriden for custom training loops."""
         for epoch in tqdm(range(self.cf.epochs), disable=self.disable_tqdm):
             num_updates = epoch * len(dataloader)
-            for batch in dataloader:
+            for batch_n, batch in enumerate(dataloader):
                 data_batch, labels_batch = batch[0].to(self.cf.device), batch[1].to(self.cf.device)
                 self.optimizer.zero_grad()
 
@@ -90,6 +92,13 @@ class Validation(ABC):
                 num_updates += 1
                 if self.scheduler:
                     self.scheduler.step_update(num_updates=num_updates)
+
+                if self.cf.print_loss and batch_n % 5 == 0:
+                    print(
+                        f"{datetime.now()} - INFO - Epoch "
+                        f"[{epoch + 1}/{self.cf.epochs}][{batch_n + 1}/{len(dataloader)}] "
+                        f"lr: {self.optimizer.param_groups[0]['lr']}, loss: {loss.item():>7f}"
+                    )
             if self.scheduler:
                 self.scheduler.step(epoch + 1)
 
