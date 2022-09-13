@@ -268,7 +268,7 @@ class Casme3A(dataset_utils.Dataset):
         df = pd.read_excel(config.casme3a_excel_path)
         df = df.rename({"Subject": "subject", "Filename": "material", "Onset": "onset",
                         "Apex": "apex", "Offset": "offset"}, axis=1)
-        df = self._seperate_duplicate_materials(df)
+        df = self._separate_duplicate_materials(df)
         df.loc[128, "apex"] = 160
         df.loc[749, "onset"] = 2647
         df.loc[[708, 796, 798], "offset"] = [34, 1845, 2403]
@@ -279,7 +279,7 @@ class Casme3A(dataset_utils.Dataset):
         return df
 
     @staticmethod
-    def _seperate_duplicate_materials(df):
+    def _separate_duplicate_materials(df):
         def remove_nums(string: str) -> str:
             return "".join([s for s in string if not s.isdigit()])
 
@@ -297,7 +297,6 @@ class Casme3A(dataset_utils.Dataset):
             else:
                 num = 2
         return df
-
 
 
 class Casme3C(dataset_utils.Dataset):
