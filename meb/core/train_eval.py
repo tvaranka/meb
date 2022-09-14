@@ -19,7 +19,8 @@ class Config:
     """
     Used to store config values.
     """
-    print_loss = False
+    print_loss_interval = None
+    validation_interval = 5
     device = torch.device("cuda:0")
     epochs = 200
     criterion = utils.MultiLabelBCELoss()
@@ -77,30 +78,48 @@ class Validation(ABC):
         test_idx = split_column[split_column == split_name].index.tolist()
         return data[train_idx], labels[train_idx], data[test_idx], labels[test_idx]
 
-    def train_model(self, dataloader: torch.utils.data.DataLoader) -> None:
+    def train_model(
+        self,
+        train_loader: torch.utils.data.DataLoader,
+        test_loader: torch.utils.data.DataLoader
+    ) -> None:
         """Main training loop. Can be overriden for custom training loops."""
         for epoch in tqdm(range(self.cf.epochs), disable=self.disable_tqdm):
-            num_updates = epoch * len(dataloader)
-            for batch_n, batch in enumerate(dataloader):
-                data_batch, labels_batch = batch[0].to(self.cf.device), batch[1].to(self.cf.device)
-                self.optimizer.zero_grad()
-
-                outputs = self.model(data_batch.float())
-                loss = self.cf.criterion(outputs, labels_batch.long())
-                loss.backward()
-                self.optimizer.step()
-                num_updates += 1
-                if self.scheduler:
-                    self.scheduler.step_update(num_updates=num_updates)
-
-                if self.cf.print_loss and batch_n % 5 == 0:
-                    print(
-                        f"{datetime.now()} - INFO - Epoch "
-                        f"[{epoch + 1}/{self.cf.epochs}][{batch_n + 1}/{len(dataloader)}] "
-                        f"lr: {self.optimizer.param_groups[0]['lr']}, loss: {loss.item():>7f}"
-                    )
+            self.train_one_epoch(epoch, train_loader)
             if self.scheduler:
                 self.scheduler.step(epoch + 1)
+            if self.cf.validation_interval:
+                if (epoch + 1) % self.cf.validation_interval == 0:
+                    train_f1 = self.evaluate_model(train_loader)
+                    test_f1, outputs_test = self.evaluate_model(test_loader, test=True)
+                    print("-" * 80)
+                    print(
+                        f"Validating at epoch {epoch + 1}\n"
+                        f"Training F1-Score mean: {np.mean(train_f1):>6f}\n"
+                        f"Test F1 per AU: {list(zip(self.cf.action_units, np.around(np.array(test_f1) * 100, 2)))}\n"
+                        f"Testing F1-Score mean: {np.mean(test_f1):>6f}"
+                    )
+                    print("-" * 80)
+
+    def train_one_epoch(self, epoch: int, dataloader: torch.utils.data.DataLoader):
+        num_updates = epoch * len(dataloader)
+        for i, (X, y) in enumerate(dataloader):
+            X, y = X.to(self.cf.device), y.to(self.cf.device)
+            self.optimizer.zero_grad()
+            outputs = self.model(X.float())
+            loss = self.cf.criterion(outputs, y)
+            loss.backward()
+            self.optimizer.step()
+            num_updates += 1
+            if self.scheduler:
+                self.scheduler.step_update(num_updates=num_updates)
+            if self.cf.print_loss_interval:
+                if i % self.cf.print_loss_interval == 0:
+                    print(
+                        f"{datetime.now()} - INFO - Epoch "
+                        f"[{epoch + 1}/{self.cf.epochs}][{i + 1}/{len(dataloader)}] "
+                        f"lr: {self.optimizer.param_groups[0]['lr']:>6f}, loss: {loss.item():>7f}"
+                    )
 
     def validate_split(self, df: pd.DataFrame, input_data: np.ndarray, labels: np.ndarray, split_name: str):
         """Main setup of each split. Should be called by the overriden validate method."""
@@ -113,7 +132,7 @@ class Validation(ABC):
         self.model.to(self.cf.device)
         self.optimizer = self.cf.optimizer(self.model.parameters())
         self.scheduler = self.cf.scheduler(self.optimizer) if self.cf.scheduler else None
-        self.train_model(train_loader)
+        self.train_model(train_loader, test_loader)
         train_f1 = self.evaluate_model(train_loader)
         test_f1, outputs_test = self.evaluate_model(test_loader, test=True)
         return train_f1, test_f1, outputs_test
