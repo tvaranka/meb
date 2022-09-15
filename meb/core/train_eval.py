@@ -106,6 +106,8 @@ class Validation(ABC):
         for i, (X, y) in enumerate(dataloader):
             X, y = X.to(self.cf.device), y.to(self.cf.device)
             self.optimizer.zero_grad()
+            if self.mixup_fn:
+                X, y = self.mixup_fn(X.float(), y.float())
             outputs = self.model(X.float())
             loss = self.cf.criterion(outputs, y)
             loss.backward()
@@ -132,6 +134,7 @@ class Validation(ABC):
         self.model.to(self.cf.device)
         self.optimizer = self.cf.optimizer(self.model.parameters())
         self.scheduler = self.cf.scheduler(self.optimizer) if self.cf.scheduler else None
+        self.mixup_fn = self.cf.mixup_fn() if self.cf.mixup_fn else None
         self.train_model(train_loader, test_loader)
         train_f1 = self.evaluate_model(train_loader)
         test_f1, outputs_test = self.evaluate_model(test_loader, test=True)
