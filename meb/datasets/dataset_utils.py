@@ -160,6 +160,12 @@ class LoadedDataLoader:
             new = type(self)(data, self.n_sample)
             return new
 
+    def __setitem__(self, index: int, new_video: np.ndarray):
+        if isinstance(index, int):
+            self.data[index] = new_video
+        else:
+            raise NotImplementedError
+
     def __repr__(self) -> str:
         if self.data_path:
             return f"LoadedDataLoader with {len(self)} items from {self.data_path[0][0]}"
