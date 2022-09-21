@@ -104,8 +104,9 @@ class MultiLabelF1Score(nn.Module):
         predictions = torch.where(outputs > 0, 1, 0)
         if self.average is None:
             return f1_score(labels, predictions, average=None)
-        if self.average == "macro":
-            return [f1_score(labels[:, i], predictions[:, i], average="macro")
+        # Each label separately to get f1 for each label
+        if self.average is not None:
+            return [f1_score(labels[:, i], predictions[:, i], average=self.average)
                     for i in range(labels.shape[-1])]
 
 
