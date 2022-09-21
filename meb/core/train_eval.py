@@ -20,7 +20,7 @@ class Config:
     Used to store config values.
     """
     print_loss_interval = None
-    validation_interval = 5
+    validation_interval = None
     device = torch.device("cuda:0")
     epochs = 200
     criterion = utils.MultiLabelBCELoss()
