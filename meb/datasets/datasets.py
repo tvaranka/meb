@@ -447,7 +447,8 @@ class MEGC(dataset_utils.Dataset):
         dataset_dfs = []
         for dataset in self.datasets:
             df = dataset.data_frame
-            df.insert(5, "dataset", dataset.dataset_name)
+            if "dataset" not in df:
+                df.insert(5, "dataset", dataset.dataset_name)
             dataset_dfs.append(df)
         df = pd.concat(dataset_dfs, axis=0, sort=False)
         df = df.reset_index().drop("index", axis=1)
