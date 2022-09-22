@@ -111,14 +111,14 @@ class MultiLabelF1Score(nn.Module):
 
 
 class MultiClassF1Score(nn.Module):
-    def __init__(self):
+    def __init__(self, average: str):
         super().__init__()
+        self.average = average
 
-    @staticmethod
-    def forward(labels: torch.tensor, outputs: torch.tensor
+    def forward(self, labels: torch.tensor, outputs: torch.tensor
                 ) -> List[float]:
         _, predictions = outputs.max(1)
-        result = f1_score(labels, predictions, average="macro")
+        result = f1_score(labels, predictions, average=self.average)
         return result
 
 
