@@ -23,8 +23,8 @@ class Config:
     validation_interval = None
     device = torch.device("cuda:0")
     epochs = 200
-    criterion = utils.MultiLabelBCELoss()
-    evaluation = utils.MultiLabelF1Score(average="macro")
+    criterion = utils.MultiLabelBCELoss
+    evaluation_fn = partial(utils.MultiLabelF1Score, average="macro")
     # Optimizer
     optimizer = partial(optim.AdamW, lr=5e-4, weight_decay=5e-2)
     scheduler = partial(CosineLRScheduler, t_initial=epochs, warmup_lr_init=1e-6, warmup_t=20, lr_min=1e-6)
@@ -44,6 +44,8 @@ class Validation(ABC):
     def __init__(self, config: Config):
         self.cf = config
         self.disable_tqdm = False
+        # Create evaluation_fn here as it is used outside validate_split function
+        self.evaluation_fn = self.cf.evaluation_fn()
 
     @abstractmethod
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
@@ -58,6 +60,7 @@ class Validation(ABC):
             batch_size = self.cf.batch_size
         else:
             transform = self.cf.test_transform
+            # Divide by four to ensure not using too much memory
             batch_size = self.cf.batch_size // 4
         dataset = utils.MEData(data, labels,
                                spatial_transform=transform["spatial"],
@@ -109,7 +112,7 @@ class Validation(ABC):
             if self.mixup_fn:
                 X, y = self.mixup_fn(X.float(), y.float())
             outputs = self.model(X.float())
-            loss = self.cf.criterion(outputs, y)
+            loss = self.criterion(outputs, y)
             loss.backward()
             self.optimizer.step()
             num_updates += 1
@@ -131,10 +134,12 @@ class Validation(ABC):
         train_loader = self.get_data_loader(train_data, train_labels, train=True)
         test_loader = self.get_data_loader(test_data, test_labels, train=False)
         self.model = self.cf.model()
+        self.criterion = self.cf.criterion()
         self.model.to(self.cf.device)
         self.optimizer = self.cf.optimizer(self.model.parameters())
         self.scheduler = self.cf.scheduler(self.optimizer) if self.cf.scheduler else None
         self.mixup_fn = self.cf.mixup_fn() if self.cf.mixup_fn else None
+
         self.train_model(train_loader, test_loader)
         train_f1 = self.evaluate_model(train_loader)
         test_f1, outputs_test = self.evaluate_model(test_loader, test=True)
@@ -160,7 +165,7 @@ class Validation(ABC):
         self.model.train()
         predictions = torch.cat(outputs_list)
         labels = torch.cat(labels_list)
-        result = self.cf.evaluation(labels, predictions)
+        result = self.evaluation_fn(labels, predictions)
         if test:
             return result, predictions
         return result
@@ -218,7 +223,7 @@ class CrossDatasetValidation(Validation):
 
         # Calculate total f1-scores
         predictions = torch.cat(outputs_list)
-        f1_aus = self.cf.evaluation(labels, predictions)
+        f1_aus = self.evaluation_fn(labels, predictions)
         if self.verbose:
             print("All AUs: ", list(zip(self.cf.action_units, np.around(np.array(f1_aus) * 100, 2))))
             print("Mean f1: ", np.around(np.mean(f1_aus) * 100, 2))
@@ -272,7 +277,7 @@ class IndividualDatasetAUValidation(Validation):
 
         # Calculate total f1-scores
         predictions = torch.cat(outputs_list)
-        f1_aus = self.cf.evaluation(labels, predictions)
+        f1_aus = self.evaluation_fn(labels, predictions)
         if self.verbose:
             print("All AUs: ", list(zip(self.cf.action_units, np.around(np.array(f1_aus) * 100, 2))))
             print("Mean f1: ", np.around(np.mean(f1_aus) * 100, 2))
@@ -304,13 +309,13 @@ class MEGCValidation(Validation):
 
         # Calculate total f1-scores
         predictions = torch.cat(outputs_list)
-        f1_total = self.cf.evaluation(labels, predictions)
+        f1_total = self.evaluation_fn(labels, predictions)
         idx = df["dataset"] == "smic"
-        f1_smic = self.cf.evaluation(labels[idx], predictions[idx])
+        f1_smic = self.evaluation_fn(labels[idx], predictions[idx])
         idx = df["dataset"] == "casme2"
-        f1_casme2 = self.cf.evaluation(labels[idx], predictions[idx])
+        f1_casme2 = self.evaluation_fn(labels[idx], predictions[idx])
         idx = df["dataset"] == "samm"
-        f1_samm = self.cf.evaluation(labels[idx], predictions[idx])
+        f1_samm = self.evaluation_fn(labels[idx], predictions[idx])
         if self.verbose:
             print(
                 "Total f1: {}, SMIC: {}, CASME2: {}, SAMM: {}".format(
