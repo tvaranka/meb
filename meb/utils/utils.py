@@ -111,7 +111,7 @@ class MultiLabelF1Score(nn.Module):
 
 
 class MultiClassF1Score(nn.Module):
-    def __init__(self, average: str):
+    def __init__(self, average: str = None):
         super().__init__()
         self.average = average
 
