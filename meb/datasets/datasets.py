@@ -427,7 +427,7 @@ class MEGC(dataset_utils.Dataset):
     ) -> None:
         self.dataset_name = ""
         self.dataset_path_format = ""
-        self.datasets = [dataset(cropped=cropped, color=color, resize=resize, optical_flow=optical_flow)
+        self.datasets = [dataset(cropped=cropped, color=color, resize=resize, optical_flow=optical_flow, **kwargs)
                          for dataset in [Smic, Casme2, SAMM]]
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
