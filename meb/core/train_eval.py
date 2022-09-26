@@ -229,9 +229,8 @@ class CrossDatasetValidation(Validation):
 
 class IndividualDatasetAUValidation(Validation):
     def __init__(self, config: Config, verbose: bool = True):
-        super().__init__(config)
+        super().__init__(config, split_column="subject")
         self.verbose = verbose
-        self.split_column = "subject"
         self.disable_tqdm = True
 
     def validate_n_times(self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5) -> None:
