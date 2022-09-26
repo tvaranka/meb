@@ -14,7 +14,7 @@ from skimage.transform import resize as sk_resize
 
 from .get_image_size import get_image_size
 from config.dataset_config import config
-from ..utils import py_evm
+import py_evm
 
 
 class LazyDataLoader:
