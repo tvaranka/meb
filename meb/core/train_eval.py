@@ -262,30 +262,24 @@ class IndividualDatasetAUValidation(Validation):
         labels = np.concatenate([np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1)
         outputs_list = []
         for subject_name in subject_names:
-            train_f1, test_f1, outputs_test = self.validate_split(df, input_data, labels, subject_name)
+            train_metrics, test_metrics, outputs_test = self.validate_split(df, input_data, labels, subject_name)
             outputs_list.append(outputs_test)
             if self.verbose:
-                print(
-                    f"Subject: {subject_name}, n={outputs_test.shape[0]} | "
-                    f"train_f1: {np.mean(train_f1):.4} | "
-                    f"test_f1: {np.mean(test_f1):.4}"
-                )
-                print(f"Test F1 per AU: {list(zip(self.cf.action_units, np.around(np.array(test_f1) * 100, 2)))}\n")
+                self.printer.print_train_test_evaluation(train_metrics, test_metrics, subject_name,
+                                                         outputs_test.shape[0])
 
         # Calculate total f1-scores
         predictions = torch.cat(outputs_list)
-        f1_aus = self.evaluation_fn(labels, predictions)
+        metrics = self.evaluation_fn(labels, predictions)
         if self.verbose:
-            print("All AUs: ", list(zip(self.cf.action_units, np.around(np.array(f1_aus) * 100, 2))))
-            print("Mean f1: ", np.around(np.mean(f1_aus) * 100, 2))
+            self.printer.print_test_validation(metrics)
         return outputs_list
 
 
 class MEGCValidation(Validation):
     def __init__(self, config: Config, verbose: bool = True):
-        super().__init__(config)
+        super().__init__(config, split_column="subject")
         self.verbose = verbose
-        self.split_column = "subject"
         self.disable_tqdm = True
 
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
@@ -295,14 +289,10 @@ class MEGCValidation(Validation):
         labels = le.fit_transform(df["emotion"])
         outputs_list = []
         for subject_name in subject_names:
-            train_f1, test_f1, outputs_test = self.validate_split(df, input_data, labels, subject_name)
+            train_metrics, test_metrics, outputs_test = self.validate_split(df, input_data, labels, subject_name)
             outputs_list.append(outputs_test)
             if self.verbose:
-                print(
-                    f"Subject: {subject_name}, n={outputs_test.shape[0]} | "
-                    f"train_f1: {np.mean(train_f1):.4} | "
-                    f"test_f1: {np.mean(test_f1):.4}"
-                )
+                self.printer.print_train_test_evaluation(train_metrics, test_metrics, subject_name, outputs_test.shape[0])
 
         # Calculate total f1-scores
         predictions = torch.cat(outputs_list)

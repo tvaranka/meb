@@ -1,8 +1,9 @@
 from typing import List
 
 import torch
+import numpy as np
 from torch import nn
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, roc_auc_score
 
 
 class MultiTaskLoss(nn.Module):
@@ -69,7 +70,29 @@ class MultiClassF1Score(nn.Module):
         return result
 
 
+def robust_roc_auc(y, p, average: str):
+    """Set cases with no positive samples to 0.5"""
+    results = []
+    for i in range(y.shape[1]):
+        if len(np.unique(y[:, i])) != 2:
+            results.append(0.5)
+        else:
+            res = roc_auc_score(y[:, i], p[:, i], average=average)
+            results.append(res)
+    return results
+
+
+class MultiLabelAUC(nn.Module):
+    def __init__(self, average: str = None):
+        super().__init__()
+        self.average = average
+
+    def __call__(self, y, p):
+        return robust_roc_auc(y, p, average=self.average)
+
+
 class MultiMetric:
+    """Allows the use of multiple different metrics at the same time"""
     def __init__(self, metric_objects):
         self.metrics = [metric() for metric in metric_objects]
 

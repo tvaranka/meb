@@ -76,7 +76,8 @@ class Printer:
     def print_test_validation(self, metrics: List[float]) -> None:
         print("Final results\n")
         for i, metric in enumerate(metrics):
-            print(self._metric_name(self.cf.evaluation_fn[i]))
+            if len(metrics) > 1:
+                print(self._metric_name(self.cf.evaluation_fn[i]))
             print("All AUs: ", list(zip(self.cf.action_units, np.around(np.array(metric) * 100, 2))))
             print("Mean: ", np.around(np.mean(metric) * 100, 2))
             print("\n")
@@ -88,14 +89,25 @@ class Printer:
             split_name: str,
             n: int
     ) -> None:
-        for i in range(len(train_metrics)):
-            print(self._metric_name(self.cf.evaluation_fn[i]))
-            print(
-                f"{self.split_column.capitalize()}: {split_name}, n={n} | "
-                f"train_mean: {np.mean(train_metrics[i]):.4} | "
-                f"test_mean: {np.mean(test_metrics[i]):.4}"
-            )
-            print(f"Test per AU: {list(zip(self.cf.action_units, np.around(np.array(test_metrics[i]) * 100, 2)))}\n")
+        if self.label_type == "au":
+            for i in range(len(train_metrics)):
+                if len(train_metrics) > 1:
+                    print(self._metric_name(self.cf.evaluation_fn[i]))
+                print(
+                    f"{self.split_column.capitalize()}: {split_name}, n={n} | "
+                    f"train_mean: {np.mean(train_metrics[i]):.4} | "
+                    f"test_mean: {np.mean(test_metrics[i]):.4}"
+                )
+                print(f"Test per AU: {list(zip(self.cf.action_units, np.around(np.array(test_metrics[i]) * 100, 2)))}\n")
+        else:
+            for i in range(len(train_metrics)):
+                if len(train_metrics) > 1:
+                    print(self._metric_name(self.cf.evaluation_fn[i]))
+                print(
+                    f"{self.split_column.capitalize()}: {split_name}, n={n} | "
+                    f"train_mean: {train_metrics[i]:.4} | "
+                    f"test_mean: {test_metrics[i]:.4}"
+                )
 
     def print_train_test_validation(
             self,
@@ -106,7 +118,8 @@ class Printer:
         print(f"Validating at epoch {epoch + 1}\n")
         print("-" * 80)
         for i in range(len(train_metrics)):
-            print(self._metric_name(self.cf.evaluation_fn[i]))
+            if len(train_metrics) > 1:
+                print(self._metric_name(self.cf.evaluation_fn[i]))
             print(
                 f"Training metric mean: {np.mean(train_metrics[i]):>6f}\n"
                 f"Test metric per AU: {list(zip(self.cf.action_units, np.around(np.array(test_metrics[i]) * 100, 2)))}\n"
