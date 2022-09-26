@@ -7,6 +7,6 @@ matplotlib
 pandas
 numpy
 
-git+https://github.com/tvaranka/Python-evm#egg=py_evm
+py_evm @ git+https://github.com/tvaranka/Python-evm#egg=py_evm
 
 setuptools~=63.4.1
