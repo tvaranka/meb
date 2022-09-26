@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from ..utils.utils import MultiLabelF1Score
+from ..utils.metrics import MultiLabelF1Score
 
 
 def list_to_latex(values: list, round_decimals: int = 1) -> str:

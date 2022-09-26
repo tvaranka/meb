@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from tqdm import tqdm
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, Sequence
 from datetime import datetime
 
 import numpy as np
@@ -11,7 +11,7 @@ from functools import partial
 from torch import optim
 from timm.scheduler.cosine_lr import CosineLRScheduler
 
-from ..utils import utils
+from meb import utils
 from ..datasets import latex_tools as lt
 
 
@@ -19,6 +19,7 @@ class Config:
     """
     Used to store config values.
     """
+    action_units = None
     print_loss_interval = None
     validation_interval = None
     device = torch.device("cuda:0")
@@ -41,11 +42,21 @@ class Validation(ABC):
     """
     split_column: str
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, split_column: str):
         self.cf = config
         self.disable_tqdm = False
+        self.split_column = split_column
         # Create evaluation_fn here as it is used outside validate_split function
-        self.evaluation_fn = self.cf.evaluation_fn()
+        if not isinstance(self.cf.evaluation_fn, Sequence):
+            self.cf.evaluation_fn = [self.cf.evaluation_fn]
+
+        self.evaluation_fn = utils.MultiMetric(self.cf.evaluation_fn)
+
+        if self.cf.action_units:
+            label_type = "au"
+        else:
+            label_type = "emotion"
+        self.printer = utils.Printer(self.cf, label_type=label_type, split_column=self.split_column)
 
     @abstractmethod
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
@@ -93,16 +104,9 @@ class Validation(ABC):
                 self.scheduler.step(epoch + 1)
             if self.cf.validation_interval:
                 if (epoch + 1) % self.cf.validation_interval == 0:
-                    train_f1 = self.evaluate_model(train_loader)
-                    test_f1, outputs_test = self.evaluate_model(test_loader, test=True)
-                    print("-" * 80)
-                    print(
-                        f"Validating at epoch {epoch + 1}\n"
-                        f"Training F1-Score mean: {np.mean(train_f1):>6f}\n"
-                        f"Test F1 per AU: {list(zip(self.cf.action_units, np.around(np.array(test_f1) * 100, 2)))}\n"
-                        f"Testing F1-Score mean: {np.mean(test_f1):>6f}"
-                    )
-                    print("-" * 80)
+                    train_metrics = self.evaluate_model(train_loader)
+                    test_metrics, outputs_test = self.evaluate_model(test_loader, test=True)
+                    self.printer.print_train_test_validation(train_metrics, test_metrics, epoch)
 
     def train_one_epoch(self, epoch: int, dataloader: torch.utils.data.DataLoader):
         num_updates = epoch * len(dataloader)
@@ -141,9 +145,9 @@ class Validation(ABC):
         self.mixup_fn = self.cf.mixup_fn() if self.cf.mixup_fn else None
 
         self.train_model(train_loader, test_loader)
-        train_f1 = self.evaluate_model(train_loader)
-        test_f1, outputs_test = self.evaluate_model(test_loader, test=True)
-        return train_f1, test_f1, outputs_test
+        train_metrics = self.evaluate_model(train_loader)
+        test_metrics, outputs_test = self.evaluate_model(test_loader, test=True)
+        return train_metrics, test_metrics, outputs_test
 
     def evaluate_model(self, dataloader: torch.utils.data.DataLoader, test: bool = False
                        ) -> Union[List[float], Tuple[List[float], torch.tensor]]:
@@ -165,10 +169,10 @@ class Validation(ABC):
         self.model.train()
         predictions = torch.cat(outputs_list)
         labels = torch.cat(labels_list)
-        result = self.evaluation_fn(labels, predictions)
+        results = self.evaluation_fn(labels, predictions)
         if test:
-            return result, predictions
-        return result
+            return results, predictions
+        return results
 
 
 class CrossDatasetValidation(Validation):
@@ -177,9 +181,8 @@ class CrossDatasetValidation(Validation):
     """
 
     def __init__(self, config: Config, verbose: bool = True):
-        super().__init__(config)
+        super().__init__(config, split_column="dataset")
         self.verbose = verbose
-        self.split_column = "dataset"
 
     def validate_n_times(self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5) -> None:
         self.verbose = False
@@ -211,22 +214,16 @@ class CrossDatasetValidation(Validation):
         labels = np.concatenate([np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1)
         outputs_list = []
         for dataset_name in dataset_names:
-            train_f1, test_f1, outputs_test = self.validate_split(df, input_data, labels, dataset_name)
+            train_metrics, test_metrics, outputs_test = self.validate_split(df, input_data, labels, dataset_name)
             outputs_list.append(outputs_test)
             if self.verbose:
-                print(
-                    f"Dataset: {dataset_name}, n={outputs_test.shape[0]} | "
-                    f"train_f1: {np.mean(train_f1):.4} | "
-                    f"test_f1: {np.mean(test_f1):.4}"
-                )
-                print(f"Test F1 per AU: {list(zip(self.cf.action_units, np.around(np.array(test_f1) * 100, 2)))}\n")
+                self.printer.print_train_test_evaluation(train_metrics, test_metrics, dataset_name, outputs_test.shape[0])
 
         # Calculate total f1-scores
         predictions = torch.cat(outputs_list)
-        f1_aus = self.evaluation_fn(labels, predictions)
+        metrics = self.evaluation_fn(labels, predictions)
         if self.verbose:
-            print("All AUs: ", list(zip(self.cf.action_units, np.around(np.array(f1_aus) * 100, 2))))
-            print("Mean f1: ", np.around(np.mean(f1_aus) * 100, 2))
+            self.printer.print_test_validation(metrics)
         return outputs_list
 
 

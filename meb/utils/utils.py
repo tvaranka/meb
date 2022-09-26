@@ -1,11 +1,12 @@
 from typing import List
+from functools import partial
 import random
 
 import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import Dataset
-from sklearn.metrics import f1_score
+
 
 
 class MEData(Dataset):
@@ -58,68 +59,60 @@ def set_random_seeds(seed: int = 1) -> None:
     torch.backends.cudnn.benchmark = False
 
 
-class MultiTaskLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.criterion = nn.CrossEntropyLoss()
-
-    def forward(self, predictions: List[torch.tensor], labels: torch.tensor) -> float:
-        task_num = len(predictions)
-        losses = [self.criterion(predictions[i], labels[:, i]) for i in range(task_num)]
-        return sum(losses)
-
-
-class MultiTaskF1(nn.Module):
-    def __init__(self):
-        super().__init__()
+class Printer:
+    def __init__(self, config: "Config", label_type: str, split_column: str):
+        self.cf = config
+        self.label_type = label_type
+        self.split_column = split_column
 
     @staticmethod
-    def forward(labels: torch.tensor, predictions: torch.tensor
-                ) -> List[float]:
-        task_num = predictions.shape[-1]
-        f1s = [
-            f1_score(labels[:, i], predictions[:, i], average="macro")
-            for i in range(task_num)
-        ]
-        return f1s
+    def _metric_name(metric) -> str:
+        if isinstance(metric, partial):
+            metric_name = metric.func.__name__
+        else:
+            metric_name = metric.__name__
+        return metric_name
 
+    def print_test_validation(self, metrics: List[float]) -> None:
+        print("Final results\n")
+        for i, metric in enumerate(metrics):
+            print(self._metric_name(self.cf.evaluation_fn[i]))
+            print("All AUs: ", list(zip(self.cf.action_units, np.around(np.array(metric) * 100, 2))))
+            print("Mean: ", np.around(np.mean(metric) * 100, 2))
+            print("\n")
 
-class MultiLabelBCELoss(nn.Module):
-    def __init__(self, weight: torch.tensor = None):
-        super().__init__()
-        self.loss = nn.BCEWithLogitsLoss(weight=weight)
+    def print_train_test_evaluation(
+            self,
+            train_metrics: List[float],
+            test_metrics: List[float],
+            split_name: str,
+            n: int
+    ) -> None:
+        for i in range(len(train_metrics)):
+            print(self._metric_name(self.cf.evaluation_fn[i]))
+            print(
+                f"{self.split_column.capitalize()}: {split_name}, n={n} | "
+                f"train_mean: {np.mean(train_metrics[i]):.4} | "
+                f"test_mean: {np.mean(test_metrics[i]):.4}"
+            )
+            print(f"Test per AU: {list(zip(self.cf.action_units, np.around(np.array(test_metrics[i]) * 100, 2)))}\n")
 
-    def forward(self, x, y):
-        loss = self.loss(x, y.float())
-        return loss
-
-
-class MultiLabelF1Score(nn.Module):
-    def __init__(self, average: str = None):
-        super().__init__()
-        self.average = average
-
-    def forward(self, labels: torch.tensor, outputs: torch.tensor
-    ) -> List[float]:
-        predictions = torch.where(outputs > 0, 1, 0)
-        if self.average is None:
-            return f1_score(labels, predictions, average=None)
-        # Each label separately to get f1 for each label
-        if self.average is not None:
-            return [f1_score(labels[:, i], predictions[:, i], average=self.average)
-                    for i in range(labels.shape[-1])]
-
-
-class MultiClassF1Score(nn.Module):
-    def __init__(self, average: str = None):
-        super().__init__()
-        self.average = average
-
-    def forward(self, labels: torch.tensor, outputs: torch.tensor
-                ) -> List[float]:
-        _, predictions = outputs.max(1)
-        result = f1_score(labels, predictions, average=self.average)
-        return result
+    def print_train_test_validation(
+            self,
+            train_metrics: List[float],
+            test_metrics: List[float],
+            epoch: int
+    ) -> None:
+        print(f"Validating at epoch {epoch + 1}\n")
+        print("-" * 80)
+        for i in range(len(train_metrics)):
+            print(self._metric_name(self.cf.evaluation_fn[i]))
+            print(
+                f"Training metric mean: {np.mean(train_metrics[i]):>6f}\n"
+                f"Test metric per AU: {list(zip(self.cf.action_units, np.around(np.array(test_metrics[i]) * 100, 2)))}\n"
+                f"Testing metric mean: {np.mean(test_metrics[i]):>6f}"
+            )
+        print("-" * 80)
 
 
 # A constant dict for handy access to the commonly used action units
