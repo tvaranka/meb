@@ -8,6 +8,5 @@ def parse_requirements(filename):
 
 
 install_reqs = parse_requirements("requirements.txt")
-reqs = [str(ir.req) for ir in install_reqs]
 
-setup(name="meb", version='1.0', packages=find_packages(), install_requires=reqs)
+setup(name="meb", version='1.0', packages=find_packages(), install_requires=install_reqs)
