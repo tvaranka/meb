@@ -34,6 +34,7 @@ class Config:
     train_transform = {"spatial": None, "temporal": None}
     test_transform = {"spatial": None, "temporal": None}
     mixup_fn = None
+    num_workers = 2
 
 
 class Validation(ABC):
@@ -77,7 +78,7 @@ class Validation(ABC):
                                spatial_transform=transform["spatial"],
                                temporal_transform=transform["temporal"])
         dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=batch_size, shuffle=train, num_workers=0, pin_memory=True
+            dataset, batch_size=batch_size, shuffle=train, num_workers=self.cf.num_workers, pin_memory=True
         )
         return dataloader
 
