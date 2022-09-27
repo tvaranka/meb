@@ -1,2 +1,3 @@
 numba
+cmake
 dlib @ git+https://github.com/davisking/dlib#egg=dlib
