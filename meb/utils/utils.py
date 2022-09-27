@@ -60,7 +60,7 @@ def set_random_seeds(seed: int = 1) -> None:
 
 
 class Printer:
-    def __init__(self, config: "Config", label_type: str, split_column: str):
+    def __init__(self, config, label_type: str, split_column: str):
         self.cf = config
         self.label_type = label_type
         self.split_column = split_column
