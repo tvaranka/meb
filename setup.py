@@ -12,6 +12,6 @@ setup(
     packages=find_packages(),
     install_requires=parse_requirements("requirements.txt"),
     extras_require={
-        "optinal": parse_requirements("optional_requiremens.txt")
+        "optional": parse_requirements("optional_requirements.txt")
     }
 )
