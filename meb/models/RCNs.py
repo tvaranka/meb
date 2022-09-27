@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 __all__ = ['RCN_A', 'RCN_S', 'RCN_W', 'RCN_P', 'RCN_C', 'RCN_F']
 
