@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import cv2
 from skimage.transform import resize as sk_resize
 
-from .get_image_size import get_image_size
+from get_image_size import get_image_size
 from config.dataset_config import config
 import py_evm
 
