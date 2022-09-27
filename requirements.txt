@@ -7,6 +7,8 @@ matplotlib
 pandas
 numpy
 timm
+tqdm
+openpyxl
 
 py_evm @ git+https://github.com/tvaranka/Python-evm#egg=py_evm
 get_image_size @ git+https://github.com/scardine/image_size#egg=get_image_size
