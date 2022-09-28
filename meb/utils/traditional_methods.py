@@ -642,7 +642,7 @@ def calculate_mdmo(df, load_data):
     MDMO_features = np.zeros((n_samples, 36 * 2))
     # Setup detector
     detector = dlib.get_frontal_face_detector()
-    predictor = dlib.shape_predictor("../shape_predictor_68_face_landmarks.dat")
+    predictor = dlib.shape_predictor("../../data/shape_predictor_68_face_landmarks.dat")
     prev_shape = None  # May brake if not able to detect face on first video
     for i, video in enumerate(load_data):
         if i % 10 == 0:
