@@ -12,7 +12,6 @@ from torch import optim
 from timm.scheduler.cosine_lr import CosineLRScheduler
 
 from meb import utils
-from ..datasets import latex_tools as lt
 
 
 class Config:
@@ -192,21 +191,23 @@ class CrossDatasetValidation(Validation):
         dataset_results = []
         for n in tqdm(range(n_times)):
             outputs_list = self.validate(df, input_data, seed_n=n + 45)
-            au_result, dataset_result = lt.results_to_list(
-                outputs_list, df, self.cf.action_units, split=self.split_column
-            )
+            au_result, dataset_result = self.printer.results_to_list(outputs_list, df)
             au_results.append(au_result)
             dataset_results.append(dataset_result)
-        au_results = lt.list_to_latex(np.mean(au_results, axis=0))
-        dataset_results = lt.list_to_latex(np.mean(dataset_results, axis=0))
+
         aus = [i for i in self.cf.action_units]
         dataset_names = df["dataset"].unique().tolist()
         aus.append("Average")
         dataset_names.append("Average")
-        print("AUS:", aus)
-        print(au_results)
-        print("\nDatasets: ", dataset_names)
-        print(dataset_results)
+        for i in range(len(self.cf.evaluation_fn)):
+            if len(self.cf.evaluation_fn) > 1:
+                print(self.printer.metric_name(self.cf.evaluation_fn[i]))
+            au_result = self.printer.list_to_latex(list(np.mean(au_results[i], axis=0)))
+            dataset_result = self.printer.list_to_latex(list(np.mean(dataset_results[i], axis=0)))
+            print("AUS:", aus)
+            print(au_result)
+            print("\nDatasets: ", dataset_names)
+            print(dataset_result)
 
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
         utils.set_random_seeds(seed_n)

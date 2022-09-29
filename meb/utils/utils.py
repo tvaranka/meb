@@ -1,12 +1,14 @@
-from typing import List
+from typing import List, Sequence, Tuple
 from functools import partial
 import random
 
 import numpy as np
+import pandas as pd
 import torch
 from torch import nn
 from torch.utils.data import Dataset
 
+from .metrics import MultiMetric
 
 
 class MEData(Dataset):
@@ -66,7 +68,7 @@ class Printer:
         self.split_column = split_column
 
     @staticmethod
-    def _metric_name(metric) -> str:
+    def metric_name(metric) -> str:
         if isinstance(metric, partial):
             metric_name = metric.func.__name__
         else:
@@ -77,7 +79,7 @@ class Printer:
         print("Final results\n")
         for i, metric in enumerate(metrics):
             if len(metrics) > 1:
-                print(self._metric_name(self.cf.evaluation_fn[i]))
+                print(self.metric_name(self.cf.evaluation_fn[i]))
             print("All AUs: ", list(zip(self.cf.action_units, np.around(np.array(metric) * 100, 2))))
             print("Mean: ", np.around(np.mean(metric) * 100, 2))
             print("\n")
@@ -92,7 +94,7 @@ class Printer:
         if self.label_type == "au":
             for i in range(len(train_metrics)):
                 if len(train_metrics) > 1:
-                    print(self._metric_name(self.cf.evaluation_fn[i]))
+                    print(self.metric_name(self.cf.evaluation_fn[i]))
                 print(
                     f"{self.split_column.capitalize()}: {split_name}, n={n} | "
                     f"train_mean: {np.mean(train_metrics[i]):.4} | "
@@ -102,7 +104,7 @@ class Printer:
         else:
             for i in range(len(train_metrics)):
                 if len(train_metrics) > 1:
-                    print(self._metric_name(self.cf.evaluation_fn[i]))
+                    print(self.metric_name(self.cf.evaluation_fn[i]))
                 print(
                     f"{self.split_column.capitalize()}: {split_name}, n={n} | "
                     f"train_mean: {train_metrics[i]:.4} | "
@@ -119,13 +121,68 @@ class Printer:
         print("-" * 80)
         for i in range(len(train_metrics)):
             if len(train_metrics) > 1:
-                print(self._metric_name(self.cf.evaluation_fn[i]))
+                print(self.metric_name(self.cf.evaluation_fn[i]))
             print(
                 f"Training metric mean: {np.mean(train_metrics[i]):>6f}\n"
                 f"Test metric per AU: {list(zip(self.cf.action_units, np.around(np.array(test_metrics[i]) * 100, 2)))}\n"
                 f"Testing metric mean: {np.mean(test_metrics[i]):>6f}"
             )
         print("-" * 80)
+
+    @staticmethod
+    def list_to_latex(values: list, round_decimals: int = 1) -> str:
+        string_list = [str(round(v, round_decimals)) for v in values]
+        return " & ".join(string_list)
+
+    def results_to_latex(
+            self,
+            outputs_list: List[np.ndarray],
+            df: pd.DataFrame,
+            round_decimals: int = 1
+    ) -> None:
+        aus = [i for i in self.cf.action_units]
+        aus.append("Average")
+        dataset_names = df["dataset"].unique().tolist()
+        dataset_names.append("Average")
+        metrics_aus, metrics_datasets = self.results_to_list(outputs_list, df)
+        # Turn list to latex
+        for i in range(len(self.cf.evaluation_fn)):
+            if len(self.cf.evaluation_fn) > 1:
+                print(self.metric_name(self.cf.evaluation_fn[i]))
+            metrics_aus_latex = self.list_to_latex(metrics_aus[i], round_decimals=round_decimals)
+            metrics_datasets_latex = self.list_to_latex(metrics_datasets[i], round_decimals=round_decimals)
+            print("AUS:", aus)
+            print(metrics_aus_latex)
+            print("\nDatasets: ", dataset_names)
+            print(metrics_datasets_latex)
+
+    def results_to_list(
+            self,
+            outputs_list: torch.tensor,
+            df: pd.DataFrame,
+    ) -> Tuple:
+        if not isinstance(self.cf.evaluation_fn, Sequence):
+            self.cf.evaluation_fn = [self.cf.evaluation_fn]
+
+        evaluation_fn = MultiMetric(self.cf.evaluation_fn)
+        # Per action units
+        labels = torch.tensor(np.array(df[self.cf.action_units]))
+        metrics_au = evaluation_fn(labels, torch.cat(outputs_list))
+        # Multiply by 100 for easier reading
+        metrics_au = [[au * 100 for au in metric] for metric in metrics_au]
+        # Per split
+        metrics_splits = []
+        for i, split_name in enumerate(df[self.split_column].unique()):
+            df_split = df[df[self.split_column] == split_name]
+            labels = torch.tensor(np.array(df_split[self.cf.action_units]))
+            metrics_split = np.mean(evaluation_fn(labels, outputs_list[i]), axis=1)
+            metrics_splits.append(metrics_split * 100)
+        # Transfer to list
+        metrics_splits = [list(np.array(metrics_splits)[:, i]) for i in range(len(self.cf.evaluation_fn))]
+        # Add average at the end of both
+        [metric.append(np.mean(metric)) for metric in metrics_au]
+        [metric.append(np.mean(metric)) for metric in metrics_splits]
+        return metrics_au, metrics_splits
 
 
 # A constant dict for handy access to the commonly used action units
