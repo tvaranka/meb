@@ -241,21 +241,23 @@ class IndividualDatasetAUValidation(Validation):
         subject_results = []
         for n in tqdm(range(n_times)):
             outputs_list = self.validate(df, input_data, seed_n=n + 45)
-            au_result, subject_result = lt.results_to_list(
-                outputs_list, df, self.cf.action_units, split=self.split_column
-            )
+            au_result, subject_result = self.printer.results_to_list(outputs_list, df)
             au_results.append(au_result)
             subject_results.append(subject_result)
-        au_results = lt.list_to_latex(np.mean(au_results, axis=0))
-        subject_results = lt.list_to_latex(np.mean(subject_results, axis=0))
+            
         aus = [i for i in self.cf.action_units]
         subject_names = df[self.split_column].unique().tolist()
         aus.append("Average")
         subject_names.append("Average")
-        print("AUS:", aus)
-        print(au_results)
-        print("\nSubjects: ", subject_names)
-        print(subject_results)
+        for i in range(len(self.cf.evaluation_fn)):
+            if len(self.cf.evaluation_fn) > 1:
+                print(self.printer.metric_name(self.cf.evaluation_fn[i]))
+            au_results = self.printer.list_to_latex(list(np.mean(au_results[i], axis=0)))
+            subject_results = self.printer.list_to_latex(list(np.mean(subject_results[i], axis=0)))
+            print("AUS:", aus)
+            print(au_results)
+            print("\nSubjects: ", subject_names)
+            print(subject_results)
 
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
         utils.set_random_seeds(seed_n)
