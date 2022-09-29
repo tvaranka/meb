@@ -199,11 +199,13 @@ class CrossDatasetValidation(Validation):
         dataset_names = df["dataset"].unique().tolist()
         aus.append("Average")
         dataset_names.append("Average")
+        au_results = np.array(au_results)
+        dataset_results = np.array(dataset_results)
         for i in range(len(self.cf.evaluation_fn)):
             if len(self.cf.evaluation_fn) > 1:
                 print(self.printer.metric_name(self.cf.evaluation_fn[i]))
-            au_result = self.printer.list_to_latex(list(np.mean(au_results[i], axis=0)))
-            dataset_result = self.printer.list_to_latex(list(np.mean(dataset_results[i], axis=0)))
+            au_result = self.printer.list_to_latex(list(au_results[:, i].mean(axis=0)))
+            dataset_result = self.printer.list_to_latex(list(dataset_results[:, i].mean(axis=0)))
             print("AUS:", aus)
             print(au_result)
             print("\nDatasets: ", dataset_names)
@@ -244,16 +246,18 @@ class IndividualDatasetAUValidation(Validation):
             au_result, subject_result = self.printer.results_to_list(outputs_list, df)
             au_results.append(au_result)
             subject_results.append(subject_result)
-            
+
         aus = [i for i in self.cf.action_units]
         subject_names = df[self.split_column].unique().tolist()
         aus.append("Average")
         subject_names.append("Average")
+        au_results = np.array(au_results)
+        subject_results = np.array(subject_results)
         for i in range(len(self.cf.evaluation_fn)):
             if len(self.cf.evaluation_fn) > 1:
                 print(self.printer.metric_name(self.cf.evaluation_fn[i]))
-            au_results = self.printer.list_to_latex(list(np.mean(au_results[i], axis=0)))
-            subject_results = self.printer.list_to_latex(list(np.mean(subject_results[i], axis=0)))
+            au_result = self.printer.list_to_latex(list(au_results[:, i].mean(axis=0)))
+            subject_results = self.printer.list_to_latex(list(subject_results[:, i].mean(axis=0)))
             print("AUS:", aus)
             print(au_results)
             print("\nSubjects: ", subject_names)
