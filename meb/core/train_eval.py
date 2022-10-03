@@ -40,7 +40,6 @@ class Validation(ABC):
     """
     Abstract class for validation.
     """
-    split_column: str
 
     def __init__(self, config: Config, split_column: str):
         self.cf = config
@@ -130,13 +129,10 @@ class Validation(ABC):
                         f"lr: {self.optimizer.param_groups[0]['lr']:>6f}, loss: {loss.item():>7f}"
                     )
 
-    def validate_split(self, df: pd.DataFrame, input_data: np.ndarray, labels: np.ndarray, split_name: str):
-        """Main setup of each split. Should be called by the overriden validate method."""
-        train_data, train_labels, test_data, test_labels = self.split_data(
-            df[self.split_column], input_data, labels, split_name
-        )
-        train_loader = self.get_data_loader(train_data, train_labels, train=True)
-        test_loader = self.get_data_loader(test_data, test_labels, train=False)
+    def setup_training(self) -> None:
+        """
+        Sets up the training modules, including model, criterion, optimizer, scheduler and mixup.
+        """
         self.model = self.cf.model()
         self.criterion = self.cf.criterion()
         self.model.to(self.cf.device)
@@ -144,6 +140,20 @@ class Validation(ABC):
         self.scheduler = self.cf.scheduler(self.optimizer) if self.cf.scheduler else None
         self.mixup_fn = self.cf.mixup_fn() if self.cf.mixup_fn else None
 
+    def validate_split(self, df: pd.DataFrame, input_data: np.ndarray, labels: np.ndarray, split_name: str):
+        """Main setup of each split. Should be called by the overriden validate method."""
+
+        # Load data
+        train_data, train_labels, test_data, test_labels = self.split_data(
+            df[self.split_column], input_data, labels, split_name
+        )
+        train_loader = self.get_data_loader(train_data, train_labels, train=True)
+        test_loader = self.get_data_loader(test_data, test_labels, train=False)
+
+        # Setup model
+        self.setup_training()
+
+        # Train and evaluation
         self.train_model(train_loader, test_loader)
         train_metrics = self.evaluate_model(train_loader)
         test_metrics, outputs_test = self.evaluate_model(test_loader, test=True)
