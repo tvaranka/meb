@@ -64,12 +64,15 @@ class LazyDataLoader:
             return video
         elif isinstance(index, Sequence):
             data_path = [self.data_path[i] for i in index]
-            return LazyDataLoader(data_path, color=self.color, resize=self.resize,
-                                  magnify=self.magnify, magnify_params=self.magnify_params)
         elif isinstance(index, slice):
             data_path = self.data_path[index]
-            return LazyDataLoader(data_path, color=self.color, resize=self.resize,
-                                  magnify=self.magnify, magnify_params=self.magnify_params)
+        elif isinstance(index, pd.DataFrame) or isinstance(index, pd.Series):
+            bool_array = np.array(index).flatten()
+            data_path = [path for i, path in enumerate(self.data_path) if bool_array[i]]
+        else:
+            raise NotImplementedError
+        return LazyDataLoader(data_path, color=self.color, resize=self.resize,
+                              magnify=self.magnify, magnify_params=self.magnify_params)
 
     def get_video_sampled(self, index: int, sampling_func: Callable = None):
         if not isinstance(index, int):
@@ -153,12 +156,15 @@ class LoadedDataLoader:
             return self.data[index]
         elif isinstance(index, Sequence):
             data = [self.data[i] for i in index]
-            new = type(self)(data, self.n_sample)
-            return new
         elif isinstance(index, slice):
             data = self.data[index]
-            new = type(self)(data, self.n_sample)
-            return new
+        elif isinstance(index, pd.DataFrame) or isinstance(index, pd.Series):
+            bool_array = np.array(index).flatten()
+            data = [path for i, path in enumerate(self.data) if bool_array[i]]
+        else:
+            raise NotImplementedError
+        new = type(self)(data, self.n_sample)
+        return new
 
     def __setitem__(self, index: int, new_video: np.ndarray):
         if isinstance(index, int):
