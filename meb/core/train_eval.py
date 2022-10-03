@@ -272,8 +272,9 @@ class IndividualDatasetAUValidation(Validation):
             train_metrics, test_metrics, outputs_test = self.validate_split(df, input_data, labels, subject_name)
             outputs_list.append(outputs_test)
             if self.verbose:
-                self.printer.print_train_test_evaluation(train_metrics, test_metrics, subject_name,
-                                                         outputs_test.shape[0])
+                self.printer.print_train_test_evaluation(
+                    train_metrics, test_metrics, subject_name, outputs_test.shape[0]
+                )
 
         # Calculate total f1-scores
         predictions = torch.cat(outputs_list)
@@ -299,7 +300,9 @@ class MEGCValidation(Validation):
             train_metrics, test_metrics, outputs_test = self.validate_split(df, input_data, labels, subject_name)
             outputs_list.append(outputs_test)
             if self.verbose:
-                self.printer.print_train_test_evaluation(train_metrics, test_metrics, subject_name, outputs_test.shape[0])
+                self.printer.print_train_test_evaluation(
+                    train_metrics, test_metrics, subject_name, outputs_test.shape[0]
+                )
 
         # Calculate total f1-scores
         predictions = torch.cat(outputs_list)

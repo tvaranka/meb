@@ -107,8 +107,8 @@ class Printer:
                     print(self.metric_name(self.cf.evaluation_fn[i]))
                 print(
                     f"{self.split_column.capitalize()}: {split_name}, n={n} | "
-                    f"train_mean: {train_metrics[i]:.4} | "
-                    f"test_mean: {test_metrics[i]:.4}"
+                    f"train_mean: {np.mean(train_metrics[i]):.4} | "
+                    f"test_mean: {np.mean(test_metrics[i]):.4}"
                 )
 
     def print_train_test_validation(
