@@ -19,7 +19,7 @@ class Config:
     Used to store config values.
     """
 
-    action_units = None
+    action_units = utils.dataset_aus["cross"]
     print_loss_interval = None
     validation_interval = None
     device = torch.device("cuda:0")
