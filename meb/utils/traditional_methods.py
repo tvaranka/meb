@@ -28,7 +28,7 @@ def bitset(n, i, st):
 # @jit
 def get_mapping(samples, mapping_type="u2"):
     """Currently only for uniform2"""
-    table = np.arange(2**samples)
+    table = np.arange(2 ** samples)
     new_max = 0
     index = 0
     if mapping_type == "u2":
@@ -181,7 +181,7 @@ def LBPTOP(
                     )
                     current_value = p_frame[int(y) - 1, int(x) - 1, t_interval]
                     if current_value >= center_value:
-                        basic_lbp = basic_lbp + 2**p
+                        basic_lbp = basic_lbp + 2 ** p
 
                 histogram[
                     int((cur_t * (rows * cols) + cur_rows * cols + cur_cols) * 3),
@@ -210,7 +210,7 @@ def LBPTOP(
                         int(yc) - 1, int(x) - 1, int(z - i + t_interval)
                     ]
                     if current_value >= center_value:
-                        basic_lbp = basic_lbp + 2**p
+                        basic_lbp = basic_lbp + 2 ** p
 
                 histogram[
                     int((cur_t * (rows * cols) + cur_rows * cols + cur_cols) * 3 + 1),
@@ -241,7 +241,7 @@ def LBPTOP(
                         int(y) - 1, int(xc) - 1, int(z - i + t_interval)
                     ]
                     if current_value >= center_value:
-                        basic_lbp = basic_lbp + 2**p
+                        basic_lbp = basic_lbp + 2 ** p
 
                 histogram[
                     int((cur_t * (rows * cols) + cur_rows * cols + cur_cols) * 3 + 2),

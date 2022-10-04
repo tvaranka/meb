@@ -41,15 +41,23 @@ class LazyDataLoader:
     LazyDataLoader(n_sample=10)
     -> shape (10, 1, width, height)
     """
+
     def __init__(
-        self, data_path: List[List[str]], color: bool = False,
-            resize=None, n_sample: int = 8, magnify: bool = False, **kwargs
+        self,
+        data_path: List[List[str]],
+        color: bool = False,
+        resize=None,
+        n_sample: int = 8,
+        magnify: bool = False,
+        **kwargs,
     ) -> None:
         self.data_path = data_path
         self.color = color
         self.resize = resize
         self.magnify = magnify
-        self.magnify_params = kwargs.pop("magnify_params", {"alpha": 10, "r1": 0.4, "r2": 0.05})
+        self.magnify_params = kwargs.pop(
+            "magnify_params", {"alpha": 10, "r1": 0.4, "r2": 0.05}
+        )
         self.n_sample = n_sample
 
     def __len__(self) -> int:
@@ -71,8 +79,13 @@ class LazyDataLoader:
             data_path = [path for i, path in enumerate(self.data_path) if bool_array[i]]
         else:
             raise NotImplementedError
-        return LazyDataLoader(data_path, color=self.color, resize=self.resize,
-                              magnify=self.magnify, magnify_params=self.magnify_params)
+        return LazyDataLoader(
+            data_path,
+            color=self.color,
+            resize=self.resize,
+            magnify=self.magnify,
+            magnify_params=self.magnify_params,
+        )
 
     def get_video_sampled(self, index: int, sampling_func: Callable = None):
         if not isinstance(index, int):
@@ -122,7 +135,9 @@ class LazyDataLoader:
             if self.resize:
                 if isinstance(self.resize, int):
                     self.resize = (self.resize, self.resize)
-                image = sk_resize(image, (self.resize[0], self.resize[1]), anti_aliasing=True)
+                image = sk_resize(
+                    image, (self.resize[0], self.resize[1]), anti_aliasing=True
+                )
                 image = (image * 255.0).astype("uint8")
             video[f] = image
 
@@ -134,7 +149,9 @@ class LazyDataLoader:
 
 
 class LoadedDataLoader:
-    def __init__(self, data_in: Union[LazyDataLoader, List[np.ndarray]], n_sample: int = 6) -> None:
+    def __init__(
+        self, data_in: Union[LazyDataLoader, List[np.ndarray]], n_sample: int = 6
+    ) -> None:
         if isinstance(data_in, LazyDataLoader):
             self.data_loader = data_in
             self.data = self.load_data()
@@ -174,7 +191,9 @@ class LoadedDataLoader:
 
     def __repr__(self) -> str:
         if self.data_path:
-            return f"LoadedDataLoader with {len(self)} items from {self.data_path[0][0]}"
+            return (
+                f"LoadedDataLoader with {len(self)} items from {self.data_path[0][0]}"
+            )
         return f"LoadedDataLoader with {len(self)} items"
 
     def get_video_sampled(self, index: int, sampling_func: Callable = None):
@@ -214,7 +233,9 @@ def get_video_paths(format_path: str, df: pd.DataFrame) -> List[List[str]]:
         )
         image_paths = os.listdir(video_path)
         file_formats = ["jpg", "bmp", "png"]
-        image_paths = [image_path for image_path in image_paths if image_path[-3:] in file_formats]
+        image_paths = [
+            image_path for image_path in image_paths if image_path[-3:] in file_formats
+        ]
         image_paths = [video_path + image_path for image_path in image_paths]
         image_paths = sort_video_path(image_paths)
         video_paths.append(image_paths)
@@ -229,7 +250,10 @@ def sort_video_path(video_path: List[str]):
     # Get the frame information by splitting with "/" and then taking the last part.
     # Get only the digits and make it an int
     # Use the i to get an index which is then used to sort the video path
-    d = {i: int(only_digit(data_path.split("/")[-1])) for i, data_path in enumerate(video_path)}
+    d = {
+        i: int(only_digit(data_path.split("/")[-1]))
+        for i, data_path in enumerate(video_path)
+    }
     idx = list(dict(sorted(d.items(), key=lambda x: x[1])).keys())
     # Use numpy array for convenient indexing
     sorted_video_path = list(np.array(video_path)[idx])
@@ -254,6 +278,7 @@ class Dataset(ABC):
     c = CrossDataset()
     ten_df, ten_data_loader = c[:10]
     """
+
     dataset_name: str
     dataset_path_format: str
 
@@ -267,8 +292,7 @@ class Dataset(ABC):
         n_sample: int = 6,
         preload: bool = False,
         ignore_validation: bool = False,
-        magnify_params: dict = {}
-
+        magnify_params: dict = {},
     ) -> None:
         self.color = color
         self.resize = resize
@@ -298,19 +322,29 @@ class Dataset(ABC):
         if self.optical_flow:
             return load_optical_flow_data(self.dataset_name, resize=self.resize)
         crop_str = "_cropped" if self.cropped else ""
-        dataset_path = getattr(DatasetConfig, f"{self.dataset_name}{crop_str}_dataset_path")
+        dataset_path = getattr(
+            DatasetConfig, f"{self.dataset_name}{crop_str}_dataset_path"
+        )
         format_path = dataset_path + self.dataset_path_format
         video_paths = get_video_paths(format_path, self.data_frame)
 
-        dataset = LazyDataLoader(video_paths, color=self.color, resize=self.resize,
-                                 n_sample=self.n_sample, magnify=self.magnify, magnify_params=self.magnify_params)
+        dataset = LazyDataLoader(
+            video_paths,
+            color=self.color,
+            resize=self.resize,
+            n_sample=self.n_sample,
+            magnify=self.magnify,
+            magnify_params=self.magnify_params,
+        )
 
         if self.preload:
             dataset = LoadedDataLoader(dataset)
 
         return dataset
 
-    def __getitem__(self, index: Union[int, Sequence, slice]) -> Tuple[pd.Series, Union[LazyDataLoader, np.ndarray]]:
+    def __getitem__(
+        self, index: Union[int, Sequence, slice]
+    ) -> Tuple[pd.Series, Union[LazyDataLoader, np.ndarray]]:
         """
         Can be used to index the data.
         Returns the data frame and data object as a tuple.
@@ -327,15 +361,25 @@ class Dataset(ABC):
                 of_frames_list.append(of_frames)
             of_frames = np.concatenate(of_frames_list)
             return of_frames
-        data_paths = [video_path for dataset in self.datasets for video_path in
-                      dataset.data.data_path
+        data_paths = [
+            video_path
+            for dataset in self.datasets
+            for video_path in dataset.data.data_path
         ]
 
         if self.preload:
-            dataset = LoadedDataLoader(list(chain.from_iterable(dataset.data for dataset in self.datasets)))
+            dataset = LoadedDataLoader(
+                list(chain.from_iterable(dataset.data for dataset in self.datasets))
+            )
         else:
-            dataset = LazyDataLoader(data_paths, self.color, self.resize, self.n_sample,
-                                     magnify=self.magnify, magnify_params=self.magnify_params)
+            dataset = LazyDataLoader(
+                data_paths,
+                self.color,
+                self.resize,
+                self.n_sample,
+                magnify=self.magnify,
+                magnify_params=self.magnify_params,
+            )
         return dataset
 
     def __repr__(self):
@@ -368,7 +412,9 @@ def extract_action_units(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def load_optical_flow_data(dataset_name: str, resize: Union[Sequence[int], int, None] = None):
+def load_optical_flow_data(
+    dataset_name: str, resize: Union[Sequence[int], int, None] = None
+):
     if isinstance(resize, int):
         h = w = resize
     elif isinstance(resize, tuple):
@@ -403,13 +449,17 @@ def validate_onset_offset(df: pd.DataFrame, data: LazyDataLoader) -> None:
         onset_path_last = data.data_path[i][0].split("/")[-1]
         onset_f = int(re.findall("\d+", onset_path_last)[-1])
         if onset_f != row["onset"]:
-            print(f"Warning: The onset does not correspond for the sample\
-            {row['subject']}_{row['material']}")
+            print(
+                f"Warning: The onset does not correspond for the sample\
+            {row['subject']}_{row['material']}"
+            )
         offset_path_last = data.data_path[i][-1].split("/")[-1]
         offset_f = int(re.findall("\d+", offset_path_last)[-1])
         if offset_f != row["offset"]:
-            print(f"Warning: The offset does not correspond for the sample\
-            {row['subject']}_{row['material']}")
+            print(
+                f"Warning: The offset does not correspond for the sample\
+            {row['subject']}_{row['material']}"
+            )
 
 
 def validate_n_frames(df: pd.DataFrame, data: LazyDataLoader) -> None:
@@ -421,9 +471,11 @@ def validate_n_frames(df: pd.DataFrame, data: LazyDataLoader) -> None:
         n_frames_df = row["n_frames"]
         n_frames_data = len(data.data_path[i])
         if n_frames_df != n_frames_data:
-            print(f"Warning: \
+            print(
+                f"Warning: \
             The number of frames does not correspond for the sample\
-             {row['subject']}_{row['material']}")
+             {row['subject']}_{row['material']}"
+            )
 
 
 def validate_frames_ascending_order(data: LazyDataLoader) -> None:
@@ -439,7 +491,9 @@ def validate_frames_ascending_order(data: LazyDataLoader) -> None:
             frame_ns.append(frame_n)
         sorted_frame_ns = sorted(frame_ns)
         if sorted_frame_ns != frame_ns:
-            print(f"Warning: The frames are not in an ascending order for sample {img_path}")
+            print(
+                f"Warning: The frames are not in an ascending order for sample {img_path}"
+            )
 
 
 def validate_dataset(df: pd.DataFrame, data: LazyDataLoader) -> None:

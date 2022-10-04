@@ -6,8 +6,14 @@ import torch
 
 
 class SSSNet(nn.Module):
-    def __init__(self, num_classes: int = 3, h_dims: List[int] = [32, 64, 256],
-                 dropout: float = 0.5, softmax=False, **kwargs):
+    def __init__(
+        self,
+        num_classes: int = 3,
+        h_dims: List[int] = [32, 64, 256],
+        dropout: float = 0.5,
+        softmax=False,
+        **kwargs
+    ):
         super().__init__()
         self.num_classes = num_classes
         h1 = h_dims[0]
@@ -70,10 +76,14 @@ class STSTNet(nn.Module):
 class OffApexNet(nn.Module):
     def __init__(self, num_classes: int = 3, dropout: float = 0.5, **kwargs):
         super().__init__()
-        self.conv1 = nn.Conv2d(in_channels=2, out_channels=6, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(
+            in_channels=2, out_channels=6, kernel_size=3, stride=1, padding=1
+        )
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.conv2 = nn.Conv2d(in_channels=6, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(
+            in_channels=6, out_channels=16, kernel_size=3, stride=1, padding=1
+        )
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
 
         self.fc1 = nn.Linear(7 ** 2 * 16, 1024)

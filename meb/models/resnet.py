@@ -22,11 +22,20 @@ class Resnet18_3D(nn.Module):
     def __init__(self, output_size: int = 3, pretrained: bool = False, **kwargs):
         super().__init__()
         self.output_size = output_size
-        #models.video.r2plus1d_18
+        # models.video.r2plus1d_18
         self.resnet18_3d = models.video.r2plus1d_18(pretrained=pretrained)
         # Make grayscale: change first conv to have 1 channel
-        new_conv = nn.Conv3d(1, 45, kernel_size=(1, 7, 7), stride=(1, 2, 2), padding=(0, 3, 3), bias=False)
-        new_conv.weight = nn.Parameter(self.resnet18_3d.stem[0].weight[:, 0].unsqueeze(1))
+        new_conv = nn.Conv3d(
+            1,
+            45,
+            kernel_size=(1, 7, 7),
+            stride=(1, 2, 2),
+            padding=(0, 3, 3),
+            bias=False,
+        )
+        new_conv.weight = nn.Parameter(
+            self.resnet18_3d.stem[0].weight[:, 0].unsqueeze(1)
+        )
         self.resnet18_3d.stem[0] = new_conv
         # Change output size of last layer
         in_features = self.resnet18_3d.fc.in_features

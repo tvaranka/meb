@@ -18,6 +18,7 @@ class Config:
     """
     Used to store config values.
     """
+
     action_units = None
     print_loss_interval = None
     validation_interval = None
@@ -27,7 +28,13 @@ class Config:
     evaluation_fn = partial(utils.MultiLabelF1Score, average="macro")
     # Optimizer
     optimizer = partial(optim.AdamW, lr=5e-4, weight_decay=5e-2)
-    scheduler = partial(CosineLRScheduler, t_initial=epochs, warmup_lr_init=1e-6, warmup_t=20, lr_min=1e-6)
+    scheduler = partial(
+        CosineLRScheduler,
+        t_initial=epochs,
+        warmup_lr_init=1e-6,
+        warmup_t=20,
+        lr_min=1e-6,
+    )
     # Dataloader
     batch_size = 32
     train_transform = {"spatial": None, "temporal": None}
@@ -55,14 +62,16 @@ class Validation(ABC):
             label_type = "au"
         else:
             label_type = "emotion"
-        self.printer = utils.Printer(self.cf, label_type=label_type, split_column=self.split_column)
+        self.printer = utils.Printer(
+            self.cf, label_type=label_type, split_column=self.split_column
+        )
 
     @abstractmethod
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
         """Overridable method that defines how the validation is done."""
 
     def get_data_loader(
-            self, data: np.ndarray, labels: np.ndarray, train: bool
+        self, data: np.ndarray, labels: np.ndarray, train: bool
     ) -> torch.utils.data.DataLoader:
         """Constructs pytorch dataloader from numpy data."""
         if train:
@@ -72,17 +81,24 @@ class Validation(ABC):
             transform = self.cf.test_transform
             # Divide by four to ensure not using too much memory
             batch_size = self.cf.batch_size // 4
-        dataset = utils.MEData(data, labels,
-                               spatial_transform=transform["spatial"],
-                               temporal_transform=transform["temporal"])
+        dataset = utils.MEData(
+            data,
+            labels,
+            spatial_transform=transform["spatial"],
+            temporal_transform=transform["temporal"],
+        )
         dataloader = torch.utils.data.DataLoader(
-            dataset, batch_size=batch_size, shuffle=train, num_workers=self.cf.num_workers, pin_memory=True
+            dataset,
+            batch_size=batch_size,
+            shuffle=train,
+            num_workers=self.cf.num_workers,
+            pin_memory=True,
         )
         return dataloader
 
     @staticmethod
     def split_data(
-            split_column: pd.Series, data: np.ndarray, labels: np.ndarray, split_name: str
+        split_column: pd.Series, data: np.ndarray, labels: np.ndarray, split_name: str
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Splits data based on the split_column and split_name. E.g., df["dataset"] == "smic"
@@ -94,7 +110,7 @@ class Validation(ABC):
     def train_model(
         self,
         train_loader: torch.utils.data.DataLoader,
-        test_loader: torch.utils.data.DataLoader
+        test_loader: torch.utils.data.DataLoader,
     ) -> None:
         """Main training loop. Can be overriden for custom training loops."""
         for epoch in tqdm(range(self.cf.epochs), disable=self.disable_tqdm):
@@ -104,8 +120,12 @@ class Validation(ABC):
             if self.cf.validation_interval:
                 if (epoch + 1) % self.cf.validation_interval == 0:
                     train_metrics = self.evaluate_model(train_loader)
-                    test_metrics, outputs_test = self.evaluate_model(test_loader, test=True)
-                    self.printer.print_train_test_validation(train_metrics, test_metrics, epoch)
+                    test_metrics, outputs_test = self.evaluate_model(
+                        test_loader, test=True
+                    )
+                    self.printer.print_train_test_validation(
+                        train_metrics, test_metrics, epoch
+                    )
 
     def train_one_epoch(self, epoch: int, dataloader: torch.utils.data.DataLoader):
         num_updates = epoch * len(dataloader)
@@ -137,10 +157,18 @@ class Validation(ABC):
         self.criterion = self.cf.criterion()
         self.model.to(self.cf.device)
         self.optimizer = self.cf.optimizer(self.model.parameters())
-        self.scheduler = self.cf.scheduler(self.optimizer) if self.cf.scheduler else None
+        self.scheduler = (
+            self.cf.scheduler(self.optimizer) if self.cf.scheduler else None
+        )
         self.mixup_fn = self.cf.mixup_fn() if self.cf.mixup_fn else None
 
-    def validate_split(self, df: pd.DataFrame, input_data: np.ndarray, labels: np.ndarray, split_name: str):
+    def validate_split(
+        self,
+        df: pd.DataFrame,
+        input_data: np.ndarray,
+        labels: np.ndarray,
+        split_name: str,
+    ):
         """Main setup of each split. Should be called by the overriden validate method."""
 
         # Load data
@@ -159,8 +187,9 @@ class Validation(ABC):
         test_metrics, outputs_test = self.evaluate_model(test_loader, test=True)
         return train_metrics, test_metrics, outputs_test
 
-    def evaluate_model(self, dataloader: torch.utils.data.DataLoader, test: bool = False
-                       ) -> Union[List[float], Tuple[List[float], torch.tensor]]:
+    def evaluate_model(
+        self, dataloader: torch.utils.data.DataLoader, test: bool = False
+    ) -> Union[List[float], Tuple[List[float], torch.tensor]]:
         """
         Evaluates the model given a dataloader and an evaluation function. Returns
         the evaluation result and if boolean test is set to true also the
@@ -194,7 +223,9 @@ class CrossDatasetValidation(Validation):
         super().__init__(config, split_column="dataset")
         self.verbose = verbose
 
-    def validate_n_times(self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5) -> None:
+    def validate_n_times(
+        self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5
+    ) -> None:
         self.verbose = False
         self.disable_tqdm = True
         au_results = []
@@ -215,7 +246,9 @@ class CrossDatasetValidation(Validation):
             if len(self.cf.evaluation_fn) > 1:
                 print(self.printer.metric_name(self.cf.evaluation_fn[i]))
             au_result = self.printer.list_to_latex(list(au_results[:, i].mean(axis=0)))
-            dataset_result = self.printer.list_to_latex(list(dataset_results[:, i].mean(axis=0)))
+            dataset_result = self.printer.list_to_latex(
+                list(dataset_results[:, i].mean(axis=0))
+            )
             print("AUS:", aus)
             print(au_result)
             print("\nDatasets: ", dataset_names)
@@ -225,13 +258,19 @@ class CrossDatasetValidation(Validation):
         utils.set_random_seeds(seed_n)
         dataset_names = df["dataset"].unique()
         # Create a boolean array with the AUs
-        labels = np.concatenate([np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1)
+        labels = np.concatenate(
+            [np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1
+        )
         outputs_list = []
         for dataset_name in dataset_names:
-            train_metrics, test_metrics, outputs_test = self.validate_split(df, input_data, labels, dataset_name)
+            train_metrics, test_metrics, outputs_test = self.validate_split(
+                df, input_data, labels, dataset_name
+            )
             outputs_list.append(outputs_test)
             if self.verbose:
-                self.printer.print_train_test_evaluation(train_metrics, test_metrics, dataset_name, outputs_test.shape[0])
+                self.printer.print_train_test_evaluation(
+                    train_metrics, test_metrics, dataset_name, outputs_test.shape[0]
+                )
 
         # Calculate total f1-scores
         predictions = torch.cat(outputs_list)
@@ -247,7 +286,9 @@ class IndividualDatasetAUValidation(Validation):
         self.verbose = verbose
         self.disable_tqdm = True
 
-    def validate_n_times(self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5) -> None:
+    def validate_n_times(
+        self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5
+    ) -> None:
         self.verbose = False
         au_results = []
         subject_results = []
@@ -267,7 +308,9 @@ class IndividualDatasetAUValidation(Validation):
             if len(self.cf.evaluation_fn) > 1:
                 print(self.printer.metric_name(self.cf.evaluation_fn[i]))
             au_result = self.printer.list_to_latex(list(au_results[:, i].mean(axis=0)))
-            subject_results = self.printer.list_to_latex(list(subject_results[:, i].mean(axis=0)))
+            subject_results = self.printer.list_to_latex(
+                list(subject_results[:, i].mean(axis=0))
+            )
             print("AUS:", aus)
             print(au_results)
             print("\nSubjects: ", subject_names)
@@ -276,10 +319,14 @@ class IndividualDatasetAUValidation(Validation):
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
         utils.set_random_seeds(seed_n)
         subject_names = df["subject"].unique()
-        labels = np.concatenate([np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1)
+        labels = np.concatenate(
+            [np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1
+        )
         outputs_list = []
         for subject_name in subject_names:
-            train_metrics, test_metrics, outputs_test = self.validate_split(df, input_data, labels, subject_name)
+            train_metrics, test_metrics, outputs_test = self.validate_split(
+                df, input_data, labels, subject_name
+            )
             outputs_list.append(outputs_test)
             if self.verbose:
                 self.printer.print_train_test_evaluation(
@@ -307,7 +354,9 @@ class MEGCValidation(Validation):
         labels = le.fit_transform(df["emotion"])
         outputs_list = []
         for subject_name in subject_names:
-            train_metrics, test_metrics, outputs_test = self.validate_split(df, input_data, labels, subject_name)
+            train_metrics, test_metrics, outputs_test = self.validate_split(
+                df, input_data, labels, subject_name
+            )
             outputs_list.append(outputs_test)
             if self.verbose:
                 self.printer.print_train_test_evaluation(

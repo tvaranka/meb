@@ -26,7 +26,7 @@ def _mix_labels(
     on_value = 1 - label_smoothing + off_value
     y = labels.clone()
     y = torch.where(y == 1, on_value, off_value)
-    return lam * y + (1. - lam) * y.flip(0)
+    return lam * y + (1.0 - lam) * y.flip(0)
 
 
 class MixUp(torch.nn.Module):
@@ -35,10 +35,7 @@ class MixUp(torch.nn.Module):
     """
 
     def __init__(
-        self,
-        alpha: float = 1.0,
-        label_smoothing: float = 0.0,
-        num_classes: int = 400,
+        self, alpha: float = 1.0, label_smoothing: float = 0.0, num_classes: int = 400,
     ) -> None:
         """
         This implements MixUp for videos.
@@ -70,10 +67,7 @@ class MixUp(torch.nn.Module):
         x_flipped = x.flip(0).mul_(1.0 - mixup_lambda)
         x.mul_(mixup_lambda).add_(x_flipped)
         new_labels = _mix_labels(
-            labels,
-            self.num_classes,
-            mixup_lambda,
-            self.label_smoothing,
+            labels, self.num_classes, mixup_lambda, self.label_smoothing,
         )
         return x, new_labels
 
@@ -85,10 +79,7 @@ class CutMix(torch.nn.Module):
     """
 
     def __init__(
-        self,
-        alpha: float = 1.0,
-        label_smoothing: float = 0.0,
-        num_classes: int = 400,
+        self, alpha: float = 1.0, label_smoothing: float = 0.0, num_classes: int = 400,
     ) -> None:
         """
         This implements CutMix for videos.
@@ -156,10 +147,7 @@ class CutMix(torch.nn.Module):
         cutmix_lamda = self.cutmix_beta_sampler.sample()
         x, cutmix_lamda_corrected = self._cutmix(x, cutmix_lamda)
         new_labels = _mix_labels(
-            labels,
-            self.num_classes,
-            cutmix_lamda_corrected,
-            self.label_smoothing,
+            labels, self.num_classes, cutmix_lamda_corrected, self.label_smoothing,
         )
         return x, new_labels
 

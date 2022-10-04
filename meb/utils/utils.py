@@ -12,8 +12,13 @@ from .metrics import MultiMetric
 
 
 class MEData(Dataset):
-    def __init__(self, frames: np.ndarray, labels: np.ndarray,
-                 temporal_transform=None, spatial_transform=None):
+    def __init__(
+        self,
+        frames: np.ndarray,
+        labels: np.ndarray,
+        temporal_transform=None,
+        spatial_transform=None,
+    ):
         self.frames = frames
         self.labels = labels
         self.temporal_transform = temporal_transform
@@ -80,16 +85,19 @@ class Printer:
         for i, metric in enumerate(metrics):
             if len(metrics) > 1:
                 print(self.metric_name(self.cf.evaluation_fn[i]))
-            print("All AUs: ", list(zip(self.cf.action_units, np.around(np.array(metric) * 100, 2))))
+            print(
+                "All AUs: ",
+                list(zip(self.cf.action_units, np.around(np.array(metric) * 100, 2))),
+            )
             print("Mean: ", np.around(np.mean(metric) * 100, 2))
             print("\n")
 
     def print_train_test_evaluation(
-            self,
-            train_metrics: List[float],
-            test_metrics: List[float],
-            split_name: str,
-            n: int
+        self,
+        train_metrics: List[float],
+        test_metrics: List[float],
+        split_name: str,
+        n: int,
     ) -> None:
         if self.label_type == "au":
             for i in range(len(train_metrics)):
@@ -100,7 +108,9 @@ class Printer:
                     f"train_mean: {np.mean(train_metrics[i]):.4} | "
                     f"test_mean: {np.mean(test_metrics[i]):.4}"
                 )
-                print(f"Test per AU: {list(zip(self.cf.action_units, np.around(np.array(test_metrics[i]) * 100, 2)))}\n")
+                print(
+                    f"Test per AU: {list(zip(self.cf.action_units, np.around(np.array(test_metrics[i]) * 100, 2)))}\n"
+                )
         else:
             for i in range(len(train_metrics)):
                 if len(train_metrics) > 1:
@@ -112,10 +122,7 @@ class Printer:
                 )
 
     def print_train_test_validation(
-            self,
-            train_metrics: List[float],
-            test_metrics: List[float],
-            epoch: int
+        self, train_metrics: List[float], test_metrics: List[float], epoch: int
     ) -> None:
         print(f"Validating at epoch {epoch + 1}\n")
         print("-" * 80)
@@ -135,10 +142,7 @@ class Printer:
         return " & ".join(string_list)
 
     def results_to_latex(
-            self,
-            outputs_list: List[np.ndarray],
-            df: pd.DataFrame,
-            round_decimals: int = 1
+        self, outputs_list: List[np.ndarray], df: pd.DataFrame, round_decimals: int = 1
     ) -> None:
         aus = [i for i in self.cf.action_units]
         aus.append("Average")
@@ -149,18 +153,18 @@ class Printer:
         for i in range(len(self.cf.evaluation_fn)):
             if len(self.cf.evaluation_fn) > 1:
                 print(self.metric_name(self.cf.evaluation_fn[i]))
-            metrics_aus_latex = self.list_to_latex(metrics_aus[i], round_decimals=round_decimals)
-            metrics_datasets_latex = self.list_to_latex(metrics_datasets[i], round_decimals=round_decimals)
+            metrics_aus_latex = self.list_to_latex(
+                metrics_aus[i], round_decimals=round_decimals
+            )
+            metrics_datasets_latex = self.list_to_latex(
+                metrics_datasets[i], round_decimals=round_decimals
+            )
             print("AUS:", aus)
             print(metrics_aus_latex)
             print("\nDatasets: ", dataset_names)
             print(metrics_datasets_latex)
 
-    def results_to_list(
-            self,
-            outputs_list: torch.tensor,
-            df: pd.DataFrame,
-    ) -> Tuple:
+    def results_to_list(self, outputs_list: torch.tensor, df: pd.DataFrame,) -> Tuple:
         if not isinstance(self.cf.evaluation_fn, Sequence):
             self.cf.evaluation_fn = [self.cf.evaluation_fn]
 
@@ -178,7 +182,10 @@ class Printer:
             metrics_split = np.mean(evaluation_fn(labels, outputs_list[i]), axis=1)
             metrics_splits.append(metrics_split * 100)
         # Transfer to list
-        metrics_splits = [list(np.array(metrics_splits)[:, i]) for i in range(len(self.cf.evaluation_fn))]
+        metrics_splits = [
+            list(np.array(metrics_splits)[:, i])
+            for i in range(len(self.cf.evaluation_fn))
+        ]
         # Add average at the end of both
         [metric.append(np.mean(metric)) for metric in metrics_au]
         [metric.append(np.mean(metric)) for metric in metrics_splits]
@@ -193,5 +200,18 @@ dataset_aus = {
     "samm": ["AU2", "AU4", "AU7", "AU12"],
     "mmew": ["AU1", "AU2", "AU4", "AU5", "AU7", "AU10", "AU12", "AU14"],
     "fourd": ["AU1", "AU2", "AU4", "AU6", "AU7", "AU12", "AU17", "AU45"],
-    "cross": ["AU1", "AU2", "AU4", "AU5", "AU6", "AU7", "AU9", "AU10", "AU12", "AU14", "AU15", "AU17"],
+    "cross": [
+        "AU1",
+        "AU2",
+        "AU4",
+        "AU5",
+        "AU6",
+        "AU7",
+        "AU9",
+        "AU10",
+        "AU12",
+        "AU14",
+        "AU15",
+        "AU17",
+    ],
 }
