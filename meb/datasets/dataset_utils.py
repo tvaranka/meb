@@ -13,7 +13,7 @@ import cv2
 from skimage.transform import resize as sk_resize
 
 from get_image_size import get_image_size
-from config.dataset_config import config
+from config.dataset_config import DatasetConfig
 import py_evm
 
 
@@ -298,7 +298,7 @@ class Dataset(ABC):
         if self.optical_flow:
             return load_optical_flow_data(self.dataset_name, resize=self.resize)
         crop_str = "_cropped" if self.cropped else ""
-        dataset_path = getattr(config, f"{self.dataset_name}{crop_str}_dataset_path")
+        dataset_path = getattr(DatasetConfig, f"{self.dataset_name}{crop_str}_dataset_path")
         format_path = dataset_path + self.dataset_path_format
         video_paths = get_video_paths(format_path, self.data_frame)
 
@@ -376,7 +376,7 @@ def load_optical_flow_data(dataset_name: str, resize: Union[Sequence[int], int, 
         w = resize[1]
     else:
         h = w = 64
-    of_path = getattr(config, f"{dataset_name}_optical_flow")
+    of_path = getattr(DatasetConfig, f"{dataset_name}_optical_flow")
     of_frames = np.load(of_path)
     n_samples, c, _, _ = of_frames.shape
     if resize:

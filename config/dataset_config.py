@@ -1,7 +1,7 @@
 import os
 
 
-class config:
+class DatasetConfig:
     """Used as a config file for storing dataset information"""
 
     smic_excel_path = "data/SMIC/smic.xlsx"
@@ -45,7 +45,7 @@ class config:
     casme3c_optical_flow = "data/CASME3/casme3c_uv_frames_secrets_of_OF.npy"
 
 
-def check_path(cls: config):
+def check_path(cls: DatasetConfig):
     """
     Checks whether the "data" folder is in the current directory.
     If not tries to find it.
@@ -66,5 +66,5 @@ def check_path(cls: config):
     return cls
 
 
-config = check_path(config)
+DatasetConfig = check_path(DatasetConfig)
 
