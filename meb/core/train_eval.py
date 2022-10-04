@@ -345,7 +345,7 @@ class MEGCValidation(Validation):
     def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config, split_column="subject")
         self.verbose = verbose
-        self.disable_tqdm = True
+        self.disable_tqdm = False
 
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
         utils.set_random_seeds(seed_n)
