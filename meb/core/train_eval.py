@@ -308,13 +308,13 @@ class IndividualDatasetAUValidation(Validation):
             if len(self.cf.evaluation_fn) > 1:
                 print(self.printer.metric_name(self.cf.evaluation_fn[i]))
             au_result = self.printer.list_to_latex(list(au_results[:, i].mean(axis=0)))
-            subject_results = self.printer.list_to_latex(
+            subject_result = self.printer.list_to_latex(
                 list(subject_results[:, i].mean(axis=0))
             )
             print("AUS:", aus)
-            print(au_results)
+            print(au_result)
             print("\nSubjects: ", subject_names)
-            print(subject_results)
+            print(subject_result)
 
     def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
         utils.set_random_seeds(seed_n)
