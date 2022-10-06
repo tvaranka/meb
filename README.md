@@ -26,7 +26,7 @@ validator = core.CrossDatasetValidator(ResNetConfig)
 validator.validate(cross_dataset.data_frame, cross_dataset.data)
 ```
 
-See [Getting started](docs/gettings_started.md) for installing and adding datasets. See [Config](docs/config.md), [Datasets](docs/datasets.md) and [Validation](docs/validation.md) for understanding the pipeline.
+See [Getting started](docs/getting_started.md) for installing and adding datasets. See [Config](docs/config.md), [Datasets](docs/datasets.md) and [Validation](docs/validation.md) for understanding the pipeline.
 
 ## Installing
 ```shell
