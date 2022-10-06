@@ -14,7 +14,7 @@ pip install .
 ```
 
 #### Adding datasets
-Due to private data (faces) appearing in micro-expression datasets they are only available after accepting the release agreement. See [Micro-expression datasets](docs/micro_expression_datasets.md) for more information on where to obtain the datasets. 
+Due to private data (faces) appearing in micro-expression datasets they are only available after accepting the release agreement. See [Micro-expression datasets](micro_expression_datasets.md) for more information on where to obtain the datasets. 
 
 The datasets can be added to the framework by two ways.
 ##### 1. Modifying the path in `config/dataset_config.py`
