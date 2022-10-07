@@ -19,6 +19,7 @@ import py_evm
 
 PandasIndex = pd.DataFrame | pd.Series
 
+
 class LazyDataLoader:
     """Loads video data on demand.
 
@@ -313,22 +314,59 @@ def sort_video_path(video_path: List[str]):
 
 
 class Dataset(ABC):
-    """
-    Base class for datasets.
+    """Abstract class for Dataset
+
+    Dataset abstraction that is inherited to create datasets for micro-expression
+    databases.
+
+    Parameters
+    ---------
+    color : bool, optional, default=False
+        When true, videos are loaded with color information, otherwise as grayscale.
+        For images with no color information, three channels are returned where
+        grayscale is replicated across the channels.
+    resize : int or Sequence, optional, default=None
+        When None, images are returned with their original size. When int,
+        images are resized to (int, int) size. When a size two Sequence is given,
+        the height and width are resized accordingly.
+    cropped : bool, optional, default=True
+        When true faces are cropped form videos. When False, original videos with
+        background are used. cropped_dataset_path needs to be defined in dataset_config.
+    optical_flow : bool, optional, default=False
+        When true, optical flow is loaded. optical_flow_path needs to be defined in
+        dataset_config.
+    magnify : bool, optional, default=False
+        When True, videos are magnified using py_evm. Parameters to py_evm
+        can be passed using kwargs with magnify_params.
+    n_sample : int, optional, default=None
+        Samples videos to include n_sample number of frames. If None no sampling
+        is performed.
+    preload : bool, optional, default=False
+        When True, loads the videos using LoadedDataLoader to RAM. When False,
+        LazyDataLoader is used and videos are loaded from disk. Significantly increases
+        loading times if there is enough space in RAM.
+    ignore_validation : bool, optional, default=False
+        When True, validation whether the dataset and data frame match is skipped.
+    magnify_params : dict, optional, default={}
+        Defines parameters for the magnification, requires that magnify is set to True.
+        The dict should contain "a", "r1" and "r2".
+
     Examples
-    # Create a dataset object which can then be used to extract the data frame and the data itself
-    dataset = Smic()
-    df = smic.data_frame
-    lazy_data_loader = smic.data
-    # Setting the optical_flow flag true
-    of_frames = Smic(optical_flow).data
-    # Multi dataset with optical flow resized to 64
-    cross_dataset = CrossDataset(resize=64, optical_flow=True)
-    # Use a custom face alignment technique
-    cross_dataset = CrossDataset(cropped=False, color=True)
-    # Indexing returns a data frame and a LazyDataLoader
-    c = CrossDataset()
-    ten_df, ten_data_loader = c[:10]
+    --------
+    >>> from meb import datasets
+    >>> casme2 = datasets.Casme2(color=True)
+    >>> data_frame = casme2.data_frame
+    >>> lazy_loader = casme2.data
+    >>> lazy_loader[0]
+    (19, 342, 280, 3)
+
+    >>> c = datasets.CrossDataset(resize=64, optical_flow=True)
+    >>> c.data.shape
+    (2031, 3, 64, 64)
+    >>> c.data_frame["subject"]
+    [01, 01, ..., 05, ..., spNO.9]
+    >>> c.data_frame["AU"]
+    [4, 4, 12, ..., 4, 1+2]
     """
 
     dataset_name: str
@@ -360,16 +398,24 @@ class Dataset(ABC):
     @cached_property
     @abstractmethod
     def data_frame(self) -> pd.DataFrame:
-        """
+        """Abstract method for accessing data frame
         Loads the excel file into a Pandas data frame and modifies possible issues
         and generates additional features.
         """
 
     @cached_property
-    def data(self) -> Union[np.ndarray, LazyDataLoader]:
-        """
-        Loads the dataset given a path. If the optical_flow flag is set to True, a numpy array is returned, else
-        RGB frames are returned in the LazyDataLoader object.
+    def data(self) -> np.ndarray | LazyDataLoader | LoadedDataLoader:
+        """Loads video data
+
+        Returns video data based on the parameters given to the object. Fetches data
+        using paths from dataset_config.
+
+        Returns
+        ----------
+        dataset : ndarray or LazyDataLoader or LoadedDataLoader
+            Returns ndarray if optical_flow=True, LoadedDataLoader if preload=True and
+            LazyDataLoader otherwise. Accesses the dataset_config to find paths based on
+            the dataset name
         """
         if self.optical_flow:
             return load_optical_flow_data(self.dataset_name, resize=self.resize)
@@ -406,6 +452,7 @@ class Dataset(ABC):
         return self.data_frame.loc[index], self.data[index]
 
     def multi_dataset_data(self):
+        """Used in case there are multiple datasets combined"""
         if self.optical_flow:
             of_frames_list = []
             for dataset in self.datasets:
@@ -499,18 +546,18 @@ def validate_onset_offset(df: pd.DataFrame, data: LazyDataLoader) -> None:
     """
     for i, row in df.iterrows():
         onset_path_last = data.data_path[i][0].split("/")[-1]
-        onset_f = int(re.findall("\d+", onset_path_last)[-1])
+        onset_f = int(re.findall(r"\d+", onset_path_last)[-1])
         if onset_f != row["onset"]:
             print(
-                f"Warning: The onset does not correspond for the sample\
-            {row['subject']}_{row['material']}"
+                "Warning: The onset does not correspond for the sample           "
+                f" {row['subject']}_{row['material']}"
             )
         offset_path_last = data.data_path[i][-1].split("/")[-1]
-        offset_f = int(re.findall("\d+", offset_path_last)[-1])
+        offset_f = int(re.findall(r"\d+", offset_path_last)[-1])
         if offset_f != row["offset"]:
             print(
-                f"Warning: The offset does not correspond for the sample\
-            {row['subject']}_{row['material']}"
+                "Warning: The offset does not correspond for the sample           "
+                f" {row['subject']}_{row['material']}"
             )
 
 
@@ -524,34 +571,34 @@ def validate_n_frames(df: pd.DataFrame, data: LazyDataLoader) -> None:
         n_frames_data = len(data.data_path[i])
         if n_frames_df != n_frames_data:
             print(
-                f"Warning: \
-            The number of frames does not correspond for the sample\
-             {row['subject']}_{row['material']}"
+                "Warning:             The number of frames does not correspond for the"
+                f" sample             {row['subject']}_{row['material']}"
             )
 
 
 def validate_frames_ascending_order(data: LazyDataLoader) -> None:
     """
-    Validates whether the frames are in the correct (ascending) order. The frames may be loaded in a random order
-    on some Linux systems.
+    Validates whether the frames are in the correct (ascending) order. The frames may
+    be loaded in a random order on some Linux systems.
     """
     for data_path in data.data_path:
         frame_ns = []
         for img_path in data_path:
             last_part = img_path.split("/")[-1]
-            frame_n = int(re.findall("\d+", last_part)[-1])
+            frame_n = int(re.findall(r"\d+", last_part)[-1])
             frame_ns.append(frame_n)
         sorted_frame_ns = sorted(frame_ns)
         if sorted_frame_ns != frame_ns:
             print(
-                f"Warning: The frames are not in an ascending order for sample {img_path}"
+                "Warning: The frames are not in an ascending order for sample"
+                f" {img_path}"
             )
 
 
 def validate_dataset(df: pd.DataFrame, data: LazyDataLoader) -> None:
     """
-    Performs a set of validation tests to make sure that the dataframe and the dataset are consistent.
-    An assertion is thrown if there is an issue.
+    Performs a set of validation tests to make sure that the dataframe and the dataset
+    are consistent. An assertion is thrown if there is an issue.
     """
     validate_apex(df)
     validate_n_frames(df, data)
