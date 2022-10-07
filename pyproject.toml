@@ -1,8 +1,6 @@
 [build-system]
 requires = ["setuptools"]
 
-
-
 [tool.black]
 line-length = 88
 target_version = ['py310']
@@ -15,3 +13,4 @@ exclude = '''
   | \.vscode
   | docs
 )/
+'''
