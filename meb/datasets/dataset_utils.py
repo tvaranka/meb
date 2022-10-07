@@ -17,29 +17,51 @@ from config.dataset_config import DatasetConfig
 import py_evm
 
 
-class LazyDataLoader:
-    """
-    Loads video data on demand.
-    Examples
-    # Create a data loader object from paths to the image files List[List[str]]
-    loader = LazyDataLoader(data_path)
-    # The video is loaded once indexed
-    first_video = loader[0]
-    # Supports slicing
-    first_ten_videos = loader[:10]
-    # And multi-indexing
-    some_videos = loader[[4, 7, 8, 11, 56]]
-    # Also works in a loop
-    for video in loader:
-        do_stuff(video)
+PandasIndex = pd.DataFrame | pd.Series
 
-    Examples from arguments
-    LazyDataLoader(resize=64)
-    -> shape (n_frames, 1, 64, 64)
-    LazyDataLoader(resize=(140, 170))
-    -> shape (n_frames, 1, 140, 170)
-    LazyDataLoader(n_sample=10)
-    -> shape (10, 1, width, height)
+class LazyDataLoader:
+    """Loads video data on demand.
+
+    Given paths to videos, provides an iterable over all the videos that
+    are loaded lazily.
+
+    Parameters
+    ---------
+    data_path : 2-dimensional list
+        A two-dimensional list where the outer list contains the videos
+        and the inner lists contain the images. The list is used to create
+        an iterable.
+    color : bool, optional, default=False
+        When true, videos are loaded with color information, otherwise as grayscale.
+        For images with no color information, three channels are returned where
+        grayscale is replicated across the channels.
+    resize : int or Sequence, optional, default=None
+        When None, images are returned with their original size. When int,
+        images are resized to (int, int) size. When a size two Sequence is given,
+        the height and width are resized accordingly.
+    n_sample : int, optional, default=None
+        Samples videos to include n_sample number of frames. If None no sampling
+        is performed.
+    magnify : bool, optional, default=False
+        When True, videos are magnified using py_evm. Parameters to py_evm
+        can be passed using kwargs with magnify_params.
+
+
+    Examples
+    --------
+    >>> from meb.utils import LazyDataLoader
+    >>> loader = LazyDataLoader(data_path)
+    >>> loader
+    LazyDataLoader with 2031 items from ...
+    >>> first_video = loader[0]
+    >>> first_ten_videos = loader[:10]
+    >>> [video.shape for video in loader]
+
+    >>> loader = LazyDataLoader(resize=112, color=True)
+    >>> loader[0].shape
+    (19, 112, 112, 3)
+    >>> loader[[1, 5, 7, 9]]
+    LazyDataLoader with 4 items from ...
     """
 
     def __init__(
@@ -47,7 +69,7 @@ class LazyDataLoader:
         data_path: List[List[str]],
         color: bool = False,
         resize=None,
-        n_sample: int = 8,
+        n_sample: int = None,
         magnify: bool = False,
         **kwargs,
     ) -> None:
@@ -63,7 +85,21 @@ class LazyDataLoader:
     def __len__(self) -> int:
         return len(self.data_path)
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int | Sequence | slice | PandasIndex):
+        """Get video(s) using index
+
+        Parameters
+        ----------
+        index : int or Sequence or slice or PandasIndex
+            When int, loads the video with the corresponding index and returns it.
+            If other a new LazyDataLoader object based on the subset.
+
+        Returns
+        -------
+        out : ndarray or LazyDataLoader
+            A ndarray video based on the index if int or a new LazyDataLoader object
+            from subset of the videos if other.
+        """
         if isinstance(index, int):
             data_path = self.data_path[index]
             video = self._get_video(data_path)
@@ -101,6 +137,22 @@ class LazyDataLoader:
         return f"LazyDataLoader with {len(self)} items from {self.data_path[0][0]}"
 
     def _create_array(self, image_paths: List[str]) -> np.ndarray:
+        """Creates an empty array with correct size.
+
+        Uses get_image_size function to load video size from metadata without
+        loading the video. Resizes if necessary.
+
+        Parameters
+        ----------
+        image_paths : List[str]
+            List of the image paths for the video.
+
+        Returns
+        -------
+        out : ndarray
+            An empty array with the original size of the video or resized.
+            uint8 data type.
+        """
         # Get image size without loading it
         w, h = get_image_size(image_paths[0])
         # Number of frames
