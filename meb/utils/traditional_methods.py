@@ -1,15 +1,7 @@
-import os
-
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import cv2
 import dlib
-
 from numba import jit
-from sklearn.svm import SVC
-from sklearn.metrics import f1_score, confusion_matrix
-from skimage.transform import resize
 
 
 def bitget(n, i):
@@ -28,7 +20,7 @@ def bitset(n, i, st):
 # @jit
 def get_mapping(samples, mapping_type="u2"):
     """Currently only for uniform2"""
-    table = np.arange(2 ** samples)
+    table = np.arange(2**samples)
     new_max = 0
     index = 0
     if mapping_type == "u2":
@@ -77,7 +69,7 @@ def LBPTOP(
     bin_count = max(bin_xy, bin_xt, bin_yt)
 
     histogram = np.zeros((rows * cols * time_part * 3, bin_count))
-    ts, pixels, t_over_size = 1, 1, 1
+    ts, t_over_size = 1, 1
     height, width, n_frames = video.shape
 
     for i in range(first_f + time_length * ts, last_f - time_length * ts + 1, ts):
@@ -181,7 +173,7 @@ def LBPTOP(
                     )
                     current_value = p_frame[int(y) - 1, int(x) - 1, t_interval]
                     if current_value >= center_value:
-                        basic_lbp = basic_lbp + 2 ** p
+                        basic_lbp = basic_lbp + 2**p
 
                 histogram[
                     int((cur_t * (rows * cols) + cur_rows * cols + cur_cols) * 3),
@@ -210,7 +202,7 @@ def LBPTOP(
                         int(yc) - 1, int(x) - 1, int(z - i + t_interval)
                     ]
                     if current_value >= center_value:
-                        basic_lbp = basic_lbp + 2 ** p
+                        basic_lbp = basic_lbp + 2**p
 
                 histogram[
                     int((cur_t * (rows * cols) + cur_rows * cols + cur_cols) * 3 + 1),
@@ -241,7 +233,7 @@ def LBPTOP(
                         int(y) - 1, int(xc) - 1, int(z - i + t_interval)
                     ]
                     if current_value >= center_value:
-                        basic_lbp = basic_lbp + 2 ** p
+                        basic_lbp = basic_lbp + 2**p
 
                 histogram[
                     int((cur_t * (rows * cols) + cur_rows * cols + cur_cols) * 3 + 2),
@@ -605,7 +597,6 @@ def MDMO_video(video, feature_points):
             bincounts = tmp
             inds[inds == 9] = 1
             inds[inds == 8] = 1
-            max_number = np.max(bincounts)
             max_index = np.argmax(bincounts)
             theta_max = theta_masked[inds == max_index + 1]
             rho_max = rho_masked[inds == max_index + 1]
@@ -614,8 +605,6 @@ def MDMO_video(video, feature_points):
             features[0, r, f] = rho_mean
             features[1, r, f] = theta_mean
 
-    # Weights
-    weight_features = np.zeros((2, n_region))
     rho_sum = features[0].sum().sum()
 
     rho_t = features[0].copy().T
