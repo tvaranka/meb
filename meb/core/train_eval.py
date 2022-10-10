@@ -15,14 +15,79 @@ from meb import utils
 
 
 class Config:
-    """
-    Used to store config values.
+    """Stores configuration settings.
+
+    The class is used to store configuration settings for running experiments.
+    Various objects require that they are passed as a class, rather than as an
+    instance. This is required for optimizers and schedulers, but the convention
+    is kept across other objects.
+
+    Attributes
+    ----------
+    action_units : List[str], default=utils.dataset_aus["cross"]
+        Defaults to the AUs used in cross-dataset evaluation. See
+        utils.dataset_aus for the values. Should be set to None when using
+        emotional labels.
+    print_loss_interval : int, default=None
+        How often loss is printed in terms of batch size. E.g., for a batch_size
+        of 64 and a print_loss_interval value of 5, loss is printed every
+        64 * 5 = 320 samples. None refers to not printed.
+    validation_interval : int, default=None
+        How often validation, both training and testing, is performed and printed
+        in terms of epochs. None refers to not printed.
+    device : torch.device, default=cuda:0 else cpu
+        Defaults cuda:0 if available, otherwise to cpu.
+    criterion : class, default=utils.MultiLabelBCELoss
+        Criterion, i.e., the loss function. Should be multi-label if using AUs and
+        multi-class if using emotions. Only the class or partial should be given, not
+        an instance of it. The object needs to be callable.
+    evaluation_fn : class, default=partial(utils.MultiLabelF1Score, average="macro")
+        Evaluation function is used for calculating performance from predictions.
+        Should be multi-label if using AUs and multi-class if using emotions. Only the
+        class or partial should be given, not an instance of it. The object needs to
+        be callable.
+    optimizer : class, default=partial(optim.AdamW, lr=5e-4, weight_decay=5e-2)
+        Optimizer of the model. Only the class or partial should be given, not an
+        instance of it. The object needs to be callable.
+    scheduler : class
+        Learning rate scheduler of the optimizer. Only the class or partial should
+        be given, not an instance of it. The object needs to be callable.
+    batch_size : int, default=32
+        Batch size determines how many samples are included in a single batch.
+    train_transform : dict, default={"spatial": None, "temporal": None}
+        A dictionary with the spatial and temporal keys. If images, e.g., optical flow
+        is used, only the spatial component needs to be defined. Transforms should be
+        from the torchvision.transforms library. Temporal transforms determine
+        sampling. See datasets.sampling for examples.
+    test_transform : dict, default={"spatial": None, "temporal": None}
+        A dictionary with the spatial and temporal keys. If images, e.g., optical flow
+        is used, only the spatial component needs to be defined. Transforms should be
+        from the torchvision.transforms library. Temporal transforms determine
+        sampling. See datasets.sampling for examples.
+    mixup_fn : class, default=None
+        Mixup (or MixCut or VideoMix) uses a linear combination of samples and their
+        labels to create new samples. See utils.mixup.
+    num_workers : int, default=2
+        Parameter for the torch DataLoader object. For cases with no transformations,
+        0 may result in faster times.
+    model : torch.nn.module, default=None
+        A torch model used for training and evaluation. Only the class or partial
+        should be given, not an instance of it. The object needs to be callable.
+
+    Examples
+    --------
+    >>> class ResNetConfig(core.Config):
+    ...     model = partial(
+    ...         models.resnet18,
+    ...         num_classes=len(action_units),
+    ...         pretrained=True
+    ...     )
     """
 
     action_units = utils.dataset_aus["cross"]
     print_loss_interval = None
     validation_interval = None
-    device = torch.device("cuda:0")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     epochs = 200
     criterion = utils.MultiLabelBCELoss
     evaluation_fn = partial(utils.MultiLabelF1Score, average="macro")
@@ -41,6 +106,7 @@ class Config:
     test_transform = {"spatial": None, "temporal": None}
     mixup_fn = None
     num_workers = 2
+    model = None
 
 
 class Validation(ABC):
@@ -101,7 +167,8 @@ class Validation(ABC):
         split_column: pd.Series, data: np.ndarray, labels: np.ndarray, split_name: str
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
-        Splits data based on the split_column and split_name. E.g., df["dataset"] == "smic"
+        Splits data based on the split_column and split_name.
+        E.g., df["dataset"] == "smic"
         """
         train_idx = split_column[split_column != split_name].index.tolist()
         test_idx = split_column[split_column == split_name].index.tolist()
@@ -144,14 +211,16 @@ class Validation(ABC):
             if self.cf.print_loss_interval:
                 if i % self.cf.print_loss_interval == 0:
                     print(
-                        f"{datetime.now()} - INFO - Epoch "
-                        f"[{epoch + 1}/{self.cf.epochs}][{i + 1}/{len(dataloader)}] "
-                        f"lr: {self.optimizer.param_groups[0]['lr']:>6f}, loss: {loss.item():>7f}"
+                        f"{datetime.now()} - INFO - Epoch"
+                        f" [{epoch + 1}/{self.cf.epochs}][{i + 1}/{len(dataloader)}]"
+                        f" lr: {self.optimizer.param_groups[0]['lr']:>6f}, loss:"
+                        f" {loss.item():>7f}"
                     )
 
     def setup_training(self) -> None:
         """
-        Sets up the training modules, including model, criterion, optimizer, scheduler and mixup.
+        Sets up the training modules, including model, criterion, optimizer, scheduler
+        and mixup.
         """
         self.model = self.cf.model()
         self.criterion = self.cf.criterion()
@@ -169,7 +238,9 @@ class Validation(ABC):
         labels: np.ndarray,
         split_name: str,
     ):
-        """Main setup of each split. Should be called by the overriden validate method."""
+        """
+        Main setup of each split. Should be called by the overriden validate method.
+        """
 
         # Load data
         train_data, train_labels, test_data, test_labels = self.split_data(
