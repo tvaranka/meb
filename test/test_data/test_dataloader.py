@@ -1,5 +1,5 @@
 import unittest
-from meb.datasets import only_digit
+from meb.datasets.dataset_utils import only_digit
 
 
 class TestDatasetUtils(unittest.TestCase):
@@ -11,6 +11,5 @@ class TestDatasetUtils(unittest.TestCase):
             self.assertEqual(digit, result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
-
