@@ -21,7 +21,7 @@ class ResNetConfig(core.Config):
     action_units = utils.dataset_aus["cross"]
     model = partial(models.resnet18, num_classes=len(action_units), pretrained=True)
   
-validator = core.CrossDatasetValidator(ResNetConfig)
+validator = core.CrossDatasetValidation(ResNetConfig)
 
 validator.validate(cross_dataset.data_frame, cross_dataset.data)
 ```
