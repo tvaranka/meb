@@ -76,10 +76,13 @@ class Config:
 
     Examples
     --------
+    >>> from meb import core
+    >>> from functools import partial
+    >>> import timm
     >>> class ResNetConfig(core.Config):
     ...     model = partial(
-    ...         models.resnet18,
-    ...         num_classes=len(action_units),
+    ...         timm.models.resnet18,
+    ...         num_classes=len(core.Config.action_units),
     ...         pretrained=True
     ...     )
     """
