@@ -18,7 +18,6 @@ from timm import models
 cross_dataset = datasets.CrossDataset(resize=112, optical_flow=True)
 
 class ResNetConfig(core.Config):
-    action_units = utils.dataset_aus["cross"]
     model = partial(models.resnet18, num_classes=len(action_units), pretrained=True)
   
 validator = core.CrossDatasetValidation(ResNetConfig)
