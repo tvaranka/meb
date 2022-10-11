@@ -9,6 +9,20 @@ import pandas as pd
 
 
 class Smic(dataset_utils.Dataset):
+    """Smic Dataset
+
+    Loads the Smic (Spontaneous Micro-Expression Database) dataset.
+
+    Reference
+    ---------
+    :doi:`Li, X., Pfister, T., Huang, X., Zhao, G. and Pietikäinen M. (2013).
+    "A Spontaneous Micro-expression Database: Inducement, collection and baseline".
+    10th IEEE International Conference and Workshops on Automatic Face and Gesture
+    Recognition (FG) pp. 1-6 <10.1109/FG.2013.6553717>`
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
@@ -32,6 +46,21 @@ class Smic(dataset_utils.Dataset):
 
 
 class Casme(dataset_utils.Dataset):
+    """Casme Dataset
+
+    Loads the Casme (Chinese Academy of Sciences Micro-Expression) dataset.
+
+    Reference
+    ---------
+    :doi:`Yan, W., Wu, Q., Liu, Y., Wang, S., and Fu, X. (2013).
+    "CASME database: A dataset of spontaneous micro-expressions collected from
+    neutralized faces". 10th IEEE International Conference and Workshops on
+    Automatic Face and Gesture Recognition (FG) pp. 1-7
+    <10.1109/FG.2013.6553799>`
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
@@ -71,6 +100,19 @@ class Casme(dataset_utils.Dataset):
 
 
 class Casme2(dataset_utils.Dataset):
+    """Casme2 Dataset
+
+    Loads the Casme2 (Chinese Academy of Sciences Micro-Expression) dataset.
+
+    Reference
+    ---------
+    :doi:`Yan, W., Li, X., Wang, S., Zhao, G., Liu, Y., Chen, Y. and Fu, X. (2014).
+    "CASME II: An Improved Spontaneous Micro-Expression Database and the Baseline
+    Evaluation". PLOS ONE 9(1): e86041 <10.1371/journal.pone.0086041>`
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
@@ -157,6 +199,19 @@ class Casme2(dataset_utils.Dataset):
 
 
 class SAMM(dataset_utils.Dataset):
+    """SAMM Dataset
+
+    Loads the SAMM (Spontaneous micro-movement) dataset.
+
+    Reference
+    ---------
+    :doi:`Davison, A. K., Lansley, C., Costen, N., Tan, K. and Yap, M. H. (2016).
+    "SAMM: A Spontaneous Micro-Facial Movement Dataset". IEEE Transactions on
+    Affective Computing, vol. 9, no. 1, pp. 116-129 <10.1109/TAFFC.2016.2573832>`
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
@@ -208,6 +263,20 @@ class SAMM(dataset_utils.Dataset):
 
 
 class Fourd(dataset_utils.Dataset):
+    """4DME Dataset
+
+    Loads the 4DME (4-dimensional Micro-Expression) dataset.
+
+    Reference
+    ---------
+    :doi:`Li, X., Cheng, S., Li, Y., Behzad, M., Shen, J., Zafeiriou, S.,
+     Pantic, M. and Zhao, G. (2022).
+    "4DME: A Spontaneous 4D Micro-Expression Dataset With Multimodalities". IEEE
+    Transactions on Affective Computing, <10.1109/TAFFC.2022.3182342>`
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
@@ -252,6 +321,20 @@ class Fourd(dataset_utils.Dataset):
 
 
 class MMEW(dataset_utils.Dataset):
+    """MMEW Dataset
+
+    Loads the MMEW (Micro- and Macro-Expression Warehouse) dataset.
+
+    Reference
+    ---------
+    :doi:`Ben, X., Ren, Y., Zhang, J., Wang, S., Kpalma, K., Meng, W. and Liu, Y.
+    (2021). "Video-Based Facial Micro-Expression Analysis: A Survey of Datasets,
+    Features and Algorithms". IEEE Transactions on Pattern Analysis and Machine
+    Intelligence, vol. 44, no. 9, pp. 5826-5846, <10.1109/TPAMI.2021.3067464>`
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
@@ -344,6 +427,21 @@ class MMEW(dataset_utils.Dataset):
 
 
 class Casme3A(dataset_utils.Dataset):
+    """CASME3A Dataset
+
+    Loads the part A of CAS(ME)^3 dataset.
+
+    Reference
+    ---------
+    :doi:`Li, J., Dong, Z., Lu, S., Wang, S., Yan, W., Ma, Y., Liu, Y., Huang, C.
+    and Fu, X. (2022). "CAS(ME)3: A Third Generation Facial Spontaneous
+    Micro-Expression Database with Depth Information and High Ecological Validity".
+    IEEE Transactions on Pattern Analysis and Machine Intelligence,
+    <10.1109/TPAMI.2022.3174895>`
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
@@ -401,6 +499,21 @@ class Casme3A(dataset_utils.Dataset):
 
 
 class Casme3C(dataset_utils.Dataset):
+    """CASME3C Dataset
+
+    Loads the part C of CAS(ME)^3 dataset.
+
+    Reference
+    ---------
+    :doi:`Li, J., Dong, Z., Lu, S., Wang, S., Yan, W., Ma, Y., Liu, Y., Huang, C.
+    and Fu, X. (2022). "CAS(ME)3: A Third Generation Facial Spontaneous
+    Micro-Expression Database with Depth Information and High Ecological Validity".
+    IEEE Transactions on Pattern Analysis and Machine Intelligence,
+    <10.1109/TPAMI.2022.3174895>`
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
@@ -428,6 +541,21 @@ class Casme3C(dataset_utils.Dataset):
 
 
 class Casme3(dataset_utils.Dataset):
+    """CASME3 Dataset
+
+    Combines part A and C together.
+
+    Reference
+    ---------
+    :doi:`Li, J., Dong, Z., Lu, S., Wang, S., Yan, W., Ma, Y., Liu, Y., Huang, C.
+    and Fu, X. (2022). "CAS(ME)3: A Third Generation Facial Spontaneous
+    Micro-Expression Database with Depth Information and High Ecological Validity".
+    IEEE Transactions on Pattern Analysis and Machine Intelligence,
+    <10.1109/TPAMI.2022.3174895>`
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
@@ -478,6 +606,13 @@ class Casme3(dataset_utils.Dataset):
 
 
 class CrossDataset(dataset_utils.Dataset):
+    """Cross-Dataset
+
+    Combines CASME, CASME2, SAMM, 4DME, MMEW and CASME3A together
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
@@ -552,6 +687,20 @@ class CrossDataset(dataset_utils.Dataset):
 
 
 class MEGC(dataset_utils.Dataset):
+    """CASME3 Dataset
+
+    Combines part A and C together.
+
+    Reference
+    ---------
+    :doi:`See, J., Yap, M. H., Li, J., Hong, X. and Wang, S. (2019).
+    "MEGC 2019 – The Second Facial Micro-Expressions Grand Challenge".
+    14th IEEE International Conference on Automatic Face & Gesture Recognition
+    (FG 2019), 2019, pp. 1-5, <10.1109/FG.2019.8756611>`
+    """
+
+    __doc__ += dataset_utils.Dataset.__doc__
+
     def __init__(
         self,
         color: bool = False,
