@@ -20,7 +20,7 @@ cross_dataset = datasets.CrossDataset(resize=112, optical_flow=True)
 class ResNetConfig(core.Config):
     model = partial(models.resnet18, num_classes=len(action_units), pretrained=True)
   
-validator = core.CrossDatasetValidation(ResNetConfig)
+validator = core.CrossDatasetValidator(ResNetConfig)
 
 validator.validate(cross_dataset.data_frame, cross_dataset.data)
 ```
