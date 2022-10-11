@@ -1,13 +1,13 @@
 from .train_eval import Config
-from .train_eval import Validation
-from .train_eval import CrossDatasetValidation
-from .train_eval import IndividualDatasetAUValidation
-from .train_eval import MEGCValidation
+from .train_eval import Validator
+from .train_eval import CrossDatasetValidator
+from .train_eval import IndividualDatasetAUValidator
+from .train_eval import MEGCValidator
 
 __all__ = [
     "Config",
-    "Validation",
-    "CrossDatasetValidation",
-    "IndividualDatasetAUValidation",
-    "MEGCValidation",
+    "Validator",
+    "CrossDatasetValidator",
+    "IndividualDatasetAUValidator",
+    "MEGCValidator",
 ]
