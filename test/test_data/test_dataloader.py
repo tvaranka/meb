@@ -1,14 +1,23 @@
 import unittest
-from meb.datasets.dataset_utils import only_digit
+import pandas as pd
+import numpy as np
+from meb.datasets.dataset_utils import extract_action_units
 
 
 class TestDatasetUtils(unittest.TestCase):
-    def test_only_digit(self):
-        test_strings = ["AU12", "AU5R", "1L", "4 B", "6(k)"]
-        test_results = ["12", "5", "1", "4", "6"]
-        for string, result in zip(test_strings, test_results):
-            digit = only_digit(string)
-            self.assertEqual(digit, result)
+    def test_extract_action_units(self):
+        test_df = pd.DataFrame({"AU": ["AU5R", "AU4+1"]})
+        test_result_df = pd.DataFrame(
+            {
+                "AU": ["AU5R", "AU4+1"],
+                "AU1": [0, 1],
+                "AU4": [0, 1],
+                "AU5": [1, 0],
+            }
+        )
+        test_df_extracted = extract_action_units(test_df)
+        res = np.array(test_df_extracted == test_result_df).mean()
+        self.assertEqual(1, res)
 
 
 if __name__ == "__main__":
