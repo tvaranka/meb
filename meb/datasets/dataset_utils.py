@@ -266,46 +266,6 @@ class LoadedDataLoader:
         return len(os.listdir(subject_folder))
 
 
-def get_video_paths(format_path: str, df: pd.DataFrame) -> List[List[str]]:
-    """
-    Takes a format_path which specifies the specific path for individual dataset
-    and a dataframe from the dataset
-    """
-    video_paths = []
-
-    for i, row in df.iterrows():
-        video_path = format_path.format(
-            subject=row["subject"], emotion=row["emotion"], material=row["material"]
-        )
-        image_paths = os.listdir(video_path)
-        file_formats = ["jpg", "bmp", "png"]
-        image_paths = [
-            image_path for image_path in image_paths if image_path[-3:] in file_formats
-        ]
-        image_paths = [video_path + image_path for image_path in image_paths]
-        image_paths = sort_video_path(image_paths)
-        video_paths.append(image_paths)
-    return video_paths
-
-
-def sort_video_path(video_path: List[str]):
-    """
-    Video paths may be given in a random order on linux devices, where the frames are in
-    a random order. Sorts the frames to the correct order.
-    """
-    # Get the frame information by splitting with "/" and then taking the last part.
-    # Get only the digits and make it an int
-    # Use the i to get an index which is then used to sort the video path
-    d = {
-        i: int(only_digit(data_path.split("/")[-1]))
-        for i, data_path in enumerate(video_path)
-    }
-    idx = list(dict(sorted(d.items(), key=lambda x: x[1])).keys())
-    # Use numpy array for convenient indexing
-    sorted_video_path = list(np.array(video_path)[idx])
-    return sorted_video_path
-
-
 class Dataset(ABC):
     """Abstract class for Dataset
 
@@ -411,13 +371,13 @@ class Dataset(ABC):
             the dataset name
         """
         if self.optical_flow:
-            return load_optical_flow_data(self.dataset_name, resize=self.resize)
+            return self._load_optical_flow_data()
         crop_str = "_cropped" if self.cropped else ""
         dataset_path = getattr(
             DatasetConfig, f"{self.dataset_name}{crop_str}_dataset_path"
         )
         format_path = dataset_path + self.dataset_path_format
-        video_paths = get_video_paths(format_path, self.data_frame)
+        video_paths = self._get_video_paths(format_path, self.data_frame)
 
         dataset = LazyDataLoader(
             video_paths,
@@ -477,8 +437,65 @@ class Dataset(ABC):
     def __repr__(self):
         return f"{self.dataset_name} dataset with {len(self.data)} samples."
 
+    @classmethod
+    def _get_video_paths(cls, format_path: str, df: pd.DataFrame) -> List[List[str]]:
+        """
+        Takes a format_path which specifies the specific path for individual dataset
+        and a dataframe from the dataset
+        """
+        video_paths = []
 
-def only_digit(s: str) -> str:
+        for i, row in df.iterrows():
+            video_path = format_path.format(
+                subject=row["subject"], emotion=row["emotion"], material=row["material"]
+            )
+            image_paths = os.listdir(video_path)
+            file_formats = ["jpg", "bmp", "png"]
+            image_paths = [
+                image_path
+                for image_path in image_paths
+                if image_path[-3:] in file_formats
+            ]
+            image_paths = [video_path + image_path for image_path in image_paths]
+            image_paths = cls._sort_video_path(image_paths)
+            video_paths.append(image_paths)
+        return video_paths
+
+    @staticmethod
+    def _sort_video_path(video_path: List[str]):
+        """
+        Video paths may be given in a random order on linux devices, where the frames
+        are in a random order. Sorts the frames to the correct order.
+        """
+        # Get the frame information by splitting with "/" and then taking the last part.
+        # Get only the digits and make it an int
+        # Use the i to get an index which is then used to sort the video path
+        d = {
+            i: int(_only_digit(data_path.split("/")[-1]))
+            for i, data_path in enumerate(video_path)
+        }
+        idx = list(dict(sorted(d.items(), key=lambda x: x[1])).keys())
+        # Use numpy array for convenient indexing
+        sorted_video_path = list(np.array(video_path)[idx])
+        return sorted_video_path
+
+    def _load_optical_flow_data(self):
+        if isinstance(self.resize, int):
+            h = w = self.resize
+        elif isinstance(self.resize, tuple):
+            h = self.resize[0]
+            w = self.resize[1]
+        else:
+            h = w = 64
+        of_path = getattr(DatasetConfig, f"{self.dataset_name}_optical_flow")
+        of_frames = np.load(of_path)
+        n_samples, c, _, _ = of_frames.shape
+        if self.resize:
+            of_frames = sk_resize(of_frames, (n_samples, c, h, w), anti_aliasing=True)
+        return of_frames
+
+
+def _only_digit(s: str) -> str:
     """Returns the digits of a string, e.g. AU12R -> 12"""
     return "".join(i for i in s if i.isdigit())
 
@@ -488,7 +505,7 @@ def extract_action_units(df: pd.DataFrame) -> pd.DataFrame:
     df["AU"] = df["AU"].astype("str")
     unique_aus = set(
         chain.from_iterable(
-            df["AU"].apply(lambda x: [only_digit(i) for i in x.split("+")]).tolist()
+            df["AU"].apply(lambda x: [_only_digit(i) for i in x.split("+")]).tolist()
         )
     )
 
@@ -497,29 +514,13 @@ def extract_action_units(df: pd.DataFrame) -> pd.DataFrame:
         df["AU{}".format(au)] = 0
 
     for i in range(df.shape[0]):
-        subject_aus = df["AU"].apply(lambda x: [only_digit(i) for i in x.split("+")])[i]
+        subject_aus = df["AU"].apply(lambda x: [_only_digit(i) for i in x.split("+")])[
+            i
+        ]
         for au in sorted_aus:
             if str(au) in subject_aus:
                 df.loc[i, "AU{}".format(au)] = 1
     return df
-
-
-def load_optical_flow_data(
-    dataset_name: str, resize: Union[Sequence[int], int, None] = None
-):
-    if isinstance(resize, int):
-        h = w = resize
-    elif isinstance(resize, tuple):
-        h = resize[0]
-        w = resize[1]
-    else:
-        h = w = 64
-    of_path = getattr(DatasetConfig, f"{dataset_name}_optical_flow")
-    of_frames = np.load(of_path)
-    n_samples, c, _, _ = of_frames.shape
-    if resize:
-        of_frames = sk_resize(of_frames, (n_samples, c, h, w), anti_aliasing=True)
-    return of_frames
 
 
 def validate_apex(df: pd.DataFrame) -> None:
