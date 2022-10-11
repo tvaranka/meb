@@ -351,7 +351,7 @@ class IndividualDatasetAUValidator(Validator):
     def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config, split_column="subject")
         self.verbose = verbose
-        self.disable_tqdm = True
+        self.disable_tqdm = False
 
     def validate_n_times(
         self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5
