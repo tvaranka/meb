@@ -105,9 +105,9 @@ class Config:
     model = None
 
 
-class Validation(ABC):
+class Validator(ABC):
     """
-    Abstract class for validation.
+    Abstract class for validator.
     """
 
     def __init__(self, config: Config, split_column: str):
@@ -281,9 +281,9 @@ class Validation(ABC):
         return results
 
 
-class CrossDatasetValidation(Validation):
+class CrossDatasetValidator(Validator):
     """
-    Performs cross-dataset validation.
+    Performs cross-dataset validator.
     """
 
     def __init__(self, config: Config, verbose: bool = True):
@@ -347,7 +347,7 @@ class CrossDatasetValidation(Validation):
         return outputs_list
 
 
-class IndividualDatasetAUValidation(Validation):
+class IndividualDatasetAUValidator(Validator):
     def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config, split_column="subject")
         self.verbose = verbose
@@ -408,7 +408,7 @@ class IndividualDatasetAUValidation(Validation):
         return outputs_list
 
 
-class MEGCValidation(Validation):
+class MEGCValidator(Validator):
     def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config, split_column="subject")
         self.verbose = verbose
