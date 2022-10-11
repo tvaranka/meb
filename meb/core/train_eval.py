@@ -9,7 +9,6 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from functools import partial
 from torch import optim
-from timm.scheduler.cosine_lr import CosineLRScheduler
 
 from meb import utils
 
@@ -46,10 +45,10 @@ class Config:
         Should be multi-label if using AUs and multi-class if using emotions. Only the
         class or partial should be given, not an instance of it. The object needs to
         be callable.
-    optimizer : class, default=partial(optim.AdamW, lr=5e-4, weight_decay=5e-2)
+    optimizer : class, default=partial(optim.Adam, lr=1e-4, weight_decay=1e-3)
         Optimizer of the model. Only the class or partial should be given, not an
         instance of it. The object needs to be callable.
-    scheduler : class
+    scheduler : class, default=None
         Learning rate scheduler of the optimizer. Only the class or partial should
         be given, not an instance of it. The object needs to be callable.
     batch_size : int, default=32
@@ -95,14 +94,8 @@ class Config:
     criterion = utils.MultiLabelBCELoss
     evaluation_fn = partial(utils.MultiLabelF1Score, average="macro")
     # Optimizer
-    optimizer = partial(optim.AdamW, lr=5e-4, weight_decay=5e-2)
-    scheduler = partial(
-        CosineLRScheduler,
-        t_initial=epochs,
-        warmup_lr_init=1e-6,
-        warmup_t=20,
-        lr_min=1e-6,
-    )
+    optimizer = partial(optim.Adam, lr=1e-4, weight_decay=1e-3)
+    scheduler = None
     # Dataloader
     batch_size = 32
     train_transform = {"spatial": None, "temporal": None}
