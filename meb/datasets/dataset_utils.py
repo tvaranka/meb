@@ -124,12 +124,12 @@ class LazyDataLoader:
             magnify_params=self.magnify_params,
         )
 
-    def get_video_sampled(self, index: int, sampling_func: Callable = None):
+    def _get_video_sampled(self, index: int, sampling_func: Callable = None):
         if not isinstance(index, int):
             raise NotImplementedError("Currently only accepts a single integer index")
         data_path = self.data_path[index]
         if sampling_func:
-            n_frames = get_number_of_frames(data_path)
+            n_frames = self._get_number_of_frames(data_path)
             frame_inds = sampling_func(self.n_sample, n_frames)
             data_path = [data_path[i] for i in frame_inds]
         return self._get_video(data_path)
@@ -257,20 +257,13 @@ class LoadedDataLoader:
             frame_inds = sampling_func(self.n_sample, n_frames)
         return self.data[index][frame_inds]
 
-
-def get_number_of_files(folder: str):
-    """
-    Returns the number of files in a folder. Used for getting the number of frames
-    """
-    return len(os.listdir(folder))
-
-
-def get_number_of_frames(subject_frame_paths: List[str]):
-    """
-    Returns the number of frames based on the first frame path.
-    """
-    subject_folder = "/".join(subject_frame_paths[0].split("/")[:-1])
-    return get_number_of_files(subject_folder)
+    @staticmethod
+    def _get_number_of_frames(subject_frame_paths: List[str]):
+        """
+        Returns the number of frames based on the first frame path.
+        """
+        subject_folder = "/".join(subject_frame_paths[0].split("/")[:-1])
+        return len(os.listdir(subject_folder))
 
 
 def get_video_paths(format_path: str, df: pd.DataFrame) -> List[List[str]]:
