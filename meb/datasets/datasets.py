@@ -1,4 +1,3 @@
-from config.dataset_config import DatasetConfig
 from typing import Sequence, Union
 from . import dataset_utils
 
@@ -37,7 +36,7 @@ class Smic(dataset_utils.Dataset):
 
     @cached_property
     def data_frame(self) -> pd.DataFrame:
-        df = pd.read_excel(DatasetConfig.smic_excel_path)
+        df = pd.read_excel(self.smic_excel_path)
         df = df.drop("Unnamed: 0", axis=1)
         df["n_frames"] = df["offset"] - df["onset"] + 1
         # Set apex at the halfway of onset and offset
@@ -75,7 +74,7 @@ class Casme(dataset_utils.Dataset):
 
     @cached_property
     def data_frame(self) -> pd.DataFrame:
-        df = pd.read_excel(DatasetConfig.casme_excel_path)
+        df = pd.read_excel(self.casme_excel_path)
         df = df.drop(["Unnamed: 2", "Unnamed: 7"], axis=1)
         df = df.rename(
             columns={
@@ -127,7 +126,7 @@ class Casme2(dataset_utils.Dataset):
 
     @cached_property
     def data_frame(self) -> pd.DataFrame:
-        df = pd.read_excel(DatasetConfig.casme2_excel_path)
+        df = pd.read_excel(self.casme2_excel_path)
         df = df.drop(["Unnamed: 2", "Unnamed: 6"], axis=1)
         df = df.rename(
             columns={
@@ -226,7 +225,7 @@ class SAMM(dataset_utils.Dataset):
 
     @cached_property
     def data_frame(self) -> pd.DataFrame:
-        df = pd.read_excel(DatasetConfig.samm_excel_path)
+        df = pd.read_excel(self.samm_excel_path)
         # Preprocess the dataframe as it contains some text
         cols = df.loc[12].tolist()
         data = df.iloc[13:].reset_index()
@@ -291,7 +290,7 @@ class Fourd(dataset_utils.Dataset):
 
     @cached_property
     def data_frame(self) -> pd.DataFrame:
-        df = pd.read_excel(DatasetConfig.fourd_excel_path)
+        df = pd.read_excel(self.fourd_excel_path)
         df = df.rename(
             columns={
                 "sub_ID": "subject",
@@ -349,7 +348,7 @@ class MMEW(dataset_utils.Dataset):
 
     @cached_property
     def data_frame(self) -> pd.DataFrame:
-        df = pd.read_excel(DatasetConfig.mmew_excel_path)
+        df = pd.read_excel(self.mmew_excel_path)
         df = df.drop("remarks", axis=1)
         df = df.rename(
             columns={
@@ -456,7 +455,7 @@ class Casme3A(dataset_utils.Dataset):
 
     @cached_property
     def data_frame(self) -> pd.DataFrame:
-        df = pd.read_excel(DatasetConfig.casme3a_excel_path)
+        df = pd.read_excel(self.casme3a_excel_path)
         df = df.rename(
             {
                 "Subject": "subject",
@@ -528,7 +527,7 @@ class Casme3C(dataset_utils.Dataset):
 
     @cached_property
     def data_frame(self) -> pd.DataFrame:
-        df = pd.read_excel(DatasetConfig.casme3c_excel_path)
+        df = pd.read_excel(self.casme3c_excel_path)
         df = df.rename({"sub": "subject", "count": "material", "au": "AU"}, axis=1)
         # replace chinese comma with standard one for sample 16
         df.loc[16, "AU"] = df.loc[16, "AU"].replace("，", ",")

@@ -266,7 +266,7 @@ class LoadedDataLoader:
         return len(os.listdir(subject_folder))
 
 
-class Dataset(ABC):
+class Dataset(ABC, DatasetConfig):
     """Abstract class for Dataset
 
     Dataset abstraction that is inherited to create datasets for micro-expression
@@ -373,9 +373,7 @@ class Dataset(ABC):
         if self.optical_flow:
             return self._load_optical_flow_data()
         crop_str = "_cropped" if self.cropped else ""
-        dataset_path = getattr(
-            DatasetConfig, f"{self.dataset_name}{crop_str}_dataset_path"
-        )
+        dataset_path = getattr(self, f"{self.dataset_name}{crop_str}_dataset_path")
         format_path = dataset_path + self.dataset_path_format
         video_paths = self._get_video_paths(format_path, self.data_frame)
 
@@ -487,7 +485,7 @@ class Dataset(ABC):
             w = self.resize[1]
         else:
             h = w = 64
-        of_path = getattr(DatasetConfig, f"{self.dataset_name}_optical_flow")
+        of_path = getattr(self, f"{self.dataset_name}_optical_flow")
         of_frames = np.load(of_path)
         n_samples, c, _, _ = of_frames.shape
         if self.resize:
