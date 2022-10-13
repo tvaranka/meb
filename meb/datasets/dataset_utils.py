@@ -1,7 +1,7 @@
 import os
 import re
 from itertools import chain
-from typing import List, Tuple, Sequence, Union, Callable
+from typing import List, Tuple, Sequence, Callable
 from abc import ABC, abstractmethod
 from tqdm import tqdm
 from functools import cached_property
@@ -203,7 +203,7 @@ class LazyDataLoader:
 
 class LoadedDataLoader:
     def __init__(
-        self, data_in: Union[LazyDataLoader, List[np.ndarray]], n_sample: int = 6
+        self, data_in: LazyDataLoader | List[np.ndarray], n_sample: int = 6
     ) -> None:
         if isinstance(data_in, LazyDataLoader):
             self.data_loader = data_in
@@ -328,7 +328,7 @@ class Dataset(ABC, DatasetConfig):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         magnify: bool = False,
@@ -392,8 +392,8 @@ class Dataset(ABC, DatasetConfig):
         return dataset
 
     def __getitem__(
-        self, index: Union[int, Sequence, slice]
-    ) -> Tuple[pd.Series, Union[LazyDataLoader, np.ndarray]]:
+        self, index: int | Sequence | slice
+    ) -> Tuple[pd.Series, LazyDataLoader | np.ndarray | LoadedDataLoader]:
         """
         Can be used to index the data.
         Returns the data frame and data object as a tuple.
