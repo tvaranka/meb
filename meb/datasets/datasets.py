@@ -1,4 +1,4 @@
-from typing import Sequence, Union
+from typing import Sequence
 from . import dataset_utils
 
 from functools import cached_property
@@ -25,7 +25,7 @@ class Smic(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -63,7 +63,7 @@ class Casme(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -115,7 +115,7 @@ class Casme2(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -214,7 +214,7 @@ class SAMM(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -279,7 +279,7 @@ class Fourd(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -337,7 +337,7 @@ class MMEW(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -444,7 +444,7 @@ class Casme3A(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -516,7 +516,7 @@ class Casme3C(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -558,7 +558,7 @@ class Casme3(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -578,7 +578,9 @@ class Casme3(dataset_utils.Dataset):
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
-    def data(self) -> Union[np.ndarray, dataset_utils.LazyDataLoader]:
+    def data(
+        self,
+    ) -> np.ndarray | dataset_utils.LazyDataLoader | dataset_utils.LoadedDataLoader:
         return self.multi_dataset_data()
 
     @cached_property
@@ -615,7 +617,7 @@ class CrossDataset(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -635,7 +637,9 @@ class CrossDataset(dataset_utils.Dataset):
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
-    def data(self) -> Union[np.ndarray, dataset_utils.LazyDataLoader]:
+    def data(
+        self,
+    ) -> np.ndarray | dataset_utils.LazyDataLoader | dataset_utils.LoadedDataLoader:
         return self.multi_dataset_data()
 
     @cached_property
@@ -703,7 +707,7 @@ class MEGC(dataset_utils.Dataset):
     def __init__(
         self,
         color: bool = False,
-        resize: Union[Sequence[int], int, None] = None,
+        resize: Sequence[int] | int = None,
         cropped: bool = True,
         optical_flow: bool = False,
         **kwargs,
@@ -723,7 +727,9 @@ class MEGC(dataset_utils.Dataset):
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @property
-    def data(self) -> Union[np.ndarray, dataset_utils.LazyDataLoader]:
+    def data(
+        self,
+    ) -> np.ndarray | dataset_utils.LazyDataLoader | dataset_utils.LoadedDataLoader:
         all_data = self.multi_dataset_data()
         _, indices_to_remove = self.get_data_frame_and_indices()
         indices_to_keep = [
