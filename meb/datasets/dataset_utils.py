@@ -266,6 +266,9 @@ class LoadedDataLoader:
         return len(os.listdir(subject_folder))
 
 
+InputData = np.ndarray | LazyDataLoader | LoadedDataLoader
+
+
 class Dataset(ABC, DatasetConfig):
     """Abstract class for Dataset
 
@@ -357,7 +360,7 @@ class Dataset(ABC, DatasetConfig):
         """
 
     @cached_property
-    def data(self) -> np.ndarray | LazyDataLoader | LoadedDataLoader:
+    def data(self) -> InputData:
         """Loads video data
 
         Returns video data based on the parameters given to the object. Fetches data

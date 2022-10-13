@@ -11,6 +11,7 @@ from functools import partial
 from torch import optim
 
 from meb import utils
+from meb.datasets.dataset_utils import InputData
 
 
 class Config:
@@ -106,8 +107,17 @@ class Config:
 
 
 class Validator(ABC):
-    """
-    Abstract class for validator.
+    """Abstract class for validator.
+
+    Performs the training and evaluation.
+
+    Parameters
+    ----------
+    config : Config
+        Determines the configuration that is used during training.
+    split_column : str
+        Determines what to dataframe column to split on. Is typically either
+        "subject" or "dataset".
     """
 
     def __init__(self, config: Config, split_column: str):
@@ -120,6 +130,7 @@ class Validator(ABC):
 
         self.evaluation_fn = utils.MultiMetric(self.cf.evaluation_fn)
 
+        # See whether to use AUs or emotional labels, used for printing
         if self.cf.action_units:
             label_type = "au"
         else:
@@ -129,13 +140,34 @@ class Validator(ABC):
         )
 
     @abstractmethod
-    def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
-        """Overridable method that defines how the validation is done."""
+    def validate(self, df: pd.DataFrame, input_data: InputData, seed_n: int = 1):
+        """Main validation function
+
+        This method should be overwritten based on the validation strategy.
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Dataframe from the datasets module. Should contain at least the split
+            column and emotional labels or AUs.
+        input_data : InputData
+            This is the data received from datasets. Should be an iterable.
+        seed_n : int
+            Determines what seed is used for randomness.
+
+        Returns
+        -------
+        out : List[torch.tensor]
+            List contains the outputs of each split from the model.
+        """
 
     def get_data_loader(
-        self, data: np.ndarray, labels: np.ndarray, train: bool
+        self, data: InputData, labels: np.ndarray, train: bool
     ) -> torch.utils.data.DataLoader:
-        """Constructs pytorch dataloader from numpy data."""
+        """Constructs pytorch dataloader
+
+        Uses InputData to construct a pytorch dataloader and applies transforms.
+        """
         if train:
             transform = self.cf.train_transform
             batch_size = self.cf.batch_size
@@ -160,8 +192,8 @@ class Validator(ABC):
 
     @staticmethod
     def split_data(
-        split_column: pd.Series, data: np.ndarray, labels: np.ndarray, split_name: str
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        split_column: pd.Series, data: InputData, labels: np.ndarray, split_name: str
+    ) -> Tuple[InputData, np.ndarray, InputData, np.ndarray]:
         """
         Splits data based on the split_column and split_name.
         E.g., df["dataset"] == "smic"
@@ -175,7 +207,12 @@ class Validator(ABC):
         train_loader: torch.utils.data.DataLoader,
         test_loader: torch.utils.data.DataLoader,
     ) -> None:
-        """Main training loop. Can be overriden for custom training loops."""
+        """Main training loop
+
+        The main training loop that controls the scheduler and printing.
+        This function can be overwritten for custom schedulers, printing,
+        etc.
+        """
         for epoch in tqdm(range(self.cf.epochs), disable=self.disable_tqdm):
             self.train_one_epoch(epoch, train_loader)
             if self.scheduler:
@@ -191,6 +228,11 @@ class Validator(ABC):
                     )
 
     def train_one_epoch(self, epoch: int, dataloader: torch.utils.data.DataLoader):
+        """Train model for single epoch
+
+        Given the epoch number, trains the model for a single epoch. This function
+        can be overwritten to create custom training loops.
+        """
         num_updates = epoch * len(dataloader)
         for i, (X, y) in enumerate(dataloader):
             X, y = X.to(self.cf.device), y.to(self.cf.device)
@@ -214,9 +256,10 @@ class Validator(ABC):
                     )
 
     def setup_training(self) -> None:
-        """
+        """Setup training components
+
         Sets up the training modules, including model, criterion, optimizer, scheduler
-        and mixup.
+        and mixup. This function can be overwritten to setup custom objects.
         """
         self.model = self.cf.model()
         self.criterion = self.cf.criterion()
@@ -230,12 +273,13 @@ class Validator(ABC):
     def validate_split(
         self,
         df: pd.DataFrame,
-        input_data: np.ndarray,
+        input_data: InputData,
         labels: np.ndarray,
         split_name: str,
     ):
-        """
-        Main setup of each split. Should be called by the overriden validate method.
+        """Splits data and begins training
+
+        Splits data according to the split and starts the evaluation process.
         """
 
         # Load data
@@ -282,16 +326,16 @@ class Validator(ABC):
 
 
 class CrossDatasetValidator(Validator):
-    """
-    Performs cross-dataset validator.
-    """
+    """Validator for cross-dataset protocol"""
+
+    __doc__ += Validator.__doc__
 
     def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config, split_column="dataset")
         self.verbose = verbose
 
     def validate_n_times(
-        self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5
+        self, df: pd.DataFrame, input_data: InputData, n_times: int = 5
     ) -> None:
         self.verbose = False
         self.disable_tqdm = True
@@ -321,7 +365,9 @@ class CrossDatasetValidator(Validator):
             print("\nDatasets: ", dataset_names)
             print(dataset_result)
 
-    def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
+    def validate(
+        self, df: pd.DataFrame, input_data: InputData, seed_n: int = 1
+    ) -> List[torch.tensor]:
         utils.set_random_seeds(seed_n)
         dataset_names = df["dataset"].unique()
         # Create a boolean array with the AUs
@@ -346,13 +392,17 @@ class CrossDatasetValidator(Validator):
 
 
 class IndividualDatasetAUValidator(Validator):
+    """Validator for single dataset AU"""
+
+    __doc__ += Validator.__doc__
+
     def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config, split_column="subject")
         self.verbose = verbose
         self.disable_tqdm = False
 
     def validate_n_times(
-        self, df: pd.DataFrame, input_data: np.ndarray, n_times: int = 5
+        self, df: pd.DataFrame, input_data: InputData, n_times: int = 5
     ) -> None:
         self.verbose = False
         au_results = []
@@ -381,7 +431,9 @@ class IndividualDatasetAUValidator(Validator):
             print("\nSubjects: ", subject_names)
             print(subject_result)
 
-    def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
+    def validate(
+        self, df: pd.DataFrame, input_data: InputData, seed_n: int = 1
+    ) -> List[torch.tensor]:
         utils.set_random_seeds(seed_n)
         subject_names = df["subject"].unique()
         labels = np.concatenate(
@@ -407,12 +459,18 @@ class IndividualDatasetAUValidator(Validator):
 
 
 class MEGCValidator(Validator):
+    """MEGC composite dataset validator"""
+
+    __doc__ += Validator.__doc__
+
     def __init__(self, config: Config, verbose: bool = True):
         super().__init__(config, split_column="subject")
         self.verbose = verbose
         self.disable_tqdm = False
 
-    def validate(self, df: pd.DataFrame, input_data: np.ndarray, seed_n: int = 1):
+    def validate(
+        self, df: pd.DataFrame, input_data: InputData, seed_n: int = 1
+    ) -> List[torch.tensor]:
         utils.set_random_seeds(seed_n)
         subject_names = df["subject"].unique()
         le = LabelEncoder()
