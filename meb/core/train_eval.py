@@ -325,9 +325,7 @@ class CrossDatasetValidator(Validator):
         utils.set_random_seeds(seed_n)
         dataset_names = df["dataset"].unique()
         # Create a boolean array with the AUs
-        labels = np.concatenate(
-            [np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1
-        )
+        labels = np.array(df[self.cf.action_units])
         outputs_list = []
         for dataset_name in dataset_names:
             train_metrics, test_metrics, outputs_test = self.validate_split(
