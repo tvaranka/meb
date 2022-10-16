@@ -15,13 +15,17 @@ from meb import utils
 from functools import partial
 from timm import models
 
+# Load in the data
 cross_dataset = datasets.CrossDataset(resize=112, optical_flow=True)
 
+# Define configurations. Inherit core.Config for default configs
 class ResNetConfig(core.Config):
-    model = partial(models.resnet18, num_classes=len(action_units), pretrained=True)
-  
+    model = partial(models.resnet18, num_classes=len(core.Config.action_units), pretrained=True)
+
+# Create a validator for cross-dataset protocol based on config
 validator = core.CrossDatasetValidator(ResNetConfig)
 
+# Train and test with the cross-dataset protocol
 validator.validate(cross_dataset.data_frame, cross_dataset.data)
 ```
 
