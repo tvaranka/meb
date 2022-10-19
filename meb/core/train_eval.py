@@ -337,7 +337,6 @@ class CrossDatasetValidator(Validator):
     def validate_n_times(
         self, df: pd.DataFrame, input_data: InputData, n_times: int = 5
     ) -> None:
-        self.verbose = False
         self.disable_tqdm = True
         au_results = []
         dataset_results = []
