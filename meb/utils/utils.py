@@ -67,10 +67,13 @@ def set_random_seeds(seed: int = 1) -> None:
 
 
 class Printer:
-    def __init__(self, config, label_type: str, split_column: str):
+    def __init__(self, config, split_column: str):
         self.cf = config
-        self.label_type = label_type
         self.split_column = split_column
+        if self.cf.action_units:
+            self.label_type = "au"
+        else:
+            self.label_type = "emotion"
 
     @staticmethod
     def metric_name(metric) -> str:
@@ -108,8 +111,9 @@ class Printer:
                     f"train_mean: {np.mean(train_metrics[i]):.4} | "
                     f"test_mean: {np.mean(test_metrics[i]):.4}"
                 )
+                rounded_metric = np.around(np.array(test_metrics[i]) * 100, 2)
                 print(
-                    f"Test per AU: {list(zip(self.cf.action_units, np.around(np.array(test_metrics[i]) * 100, 2)))}\n"
+                    f"Test per AU: {list(zip(self.cf.action_units, rounded_metric))}\n"
                 )
         else:
             for i in range(len(train_metrics)):
@@ -129,10 +133,12 @@ class Printer:
         for i in range(len(train_metrics)):
             if len(train_metrics) > 1:
                 print(self.metric_name(self.cf.evaluation_fn[i]))
+            rounded_metric = np.around(np.array(test_metrics[i]) * 100, 2)
             print(
-                f"Training metric mean: {np.mean(train_metrics[i]):>6f}\n"
-                f"Test metric per AU: {list(zip(self.cf.action_units, np.around(np.array(test_metrics[i]) * 100, 2)))}\n"
-                f"Testing metric mean: {np.mean(test_metrics[i]):>6f}"
+                f"Training metric mean: {np.mean(train_metrics[i]):>6f}\nTest metric"
+                " per AU:"
+                f" {list(zip(self.cf.action_units, rounded_metric))}\nTesting"
+                f" metric mean: {np.mean(test_metrics[i]):>6f}"
             )
         print("-" * 80)
 
@@ -164,7 +170,11 @@ class Printer:
             print("\nDatasets: ", dataset_names)
             print(metrics_datasets_latex)
 
-    def results_to_list(self, outputs_list: torch.tensor, df: pd.DataFrame,) -> Tuple:
+    def results_to_list(
+        self,
+        outputs_list: torch.tensor,
+        df: pd.DataFrame,
+    ) -> Tuple:
         if not isinstance(self.cf.evaluation_fn, Sequence):
             self.cf.evaluation_fn = [self.cf.evaluation_fn]
 

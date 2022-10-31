@@ -130,14 +130,7 @@ class Validator(ABC):
 
         self.evaluation_fn = utils.MultiMetric(self.cf.evaluation_fn)
 
-        # See whether to use AUs or emotional labels, used for printing
-        if self.cf.action_units:
-            label_type = "au"
-        else:
-            label_type = "emotion"
-        self.printer = utils.Printer(
-            self.cf, label_type=label_type, split_column=self.split_column
-        )
+        self.printer = utils.Printer(self.cf, split_column=self.split_column)
 
     @abstractmethod
     def validate(self, df: pd.DataFrame, input_data: InputData, seed_n: int = 1):
