@@ -286,6 +286,7 @@ class Fourd(dataset_utils.Dataset):
     ) -> None:
         self.dataset_name = "fourd"
         self.dataset_path_format = "/{subject}/{material}/"
+        self.ignore_ks = kwargs.pop("ignore_ks", None)
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
     @cached_property
@@ -310,12 +311,13 @@ class Fourd(dataset_utils.Dataset):
         df.loc[144, "AU":] = df.loc[145, "AU":]
         df.loc[145, "AU":] = tmp
 
-        # Remove (k)s from data?
-        for i in range(df.shape[0]):
-            a = [au[:-3] for au in df.loc[i, "AU"].split("+") if "(k)" in au]
-            a = [au[2:] if "AU" in au else au for au in a]
-            for au in a:
-                df.loc[i, "AU{}".format(au)] = 0
+        # Remove (k)s from data
+        if not self.ignore_ks:
+            for i in range(df.shape[0]):
+                a = [au[:-3] for au in df.loc[i, "AU"].split("+") if "(k)" in au]
+                a = [au[2:] if "AU" in au else au for au in a]
+                for au in a:
+                    df.loc[i, "AU{}".format(au)] = 0
         return df
 
 
