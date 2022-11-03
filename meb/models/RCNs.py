@@ -4,6 +4,10 @@ import torch.nn.functional as F
 
 __all__ = ["RCN_A", "RCN_S", "RCN_W", "RCN_P", "RCN_C", "RCN_F"]
 
+# Code from https://github.com/xiazhaoqiang/ParameterFreeRCNs-MicroExpressionRec
+# Revealing the Invisible With Model and Data Shrinking for Composite-Database
+# Micro-Expression Recognition, IEEE TIP2020
+
 
 class ConvBlock(nn.Module):
     """convolutional layer blocks for sequtial convolution operations"""
@@ -237,8 +241,7 @@ def MakeLayer(block, planes, blocks):
 
 
 class RCN_A(nn.Module):
-    """menet networks with adding attention unit
-    """
+    """menet networks with adding attention unit"""
 
     def __init__(
         self,
@@ -248,7 +251,7 @@ class RCN_A(nn.Module):
         num_layers=1,
         pool_size=5,
         model_version=3,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.version = model_version
@@ -299,8 +302,7 @@ class RCN_A(nn.Module):
 
 
 class RCN_S(nn.Module):
-    """menet networks with dense shortcut connection
-    """
+    """menet networks with dense shortcut connection"""
 
     def __init__(
         self, num_input, featuremaps, num_classes, num_layers=1, pool_size=5, **kwargs
@@ -336,8 +338,7 @@ class RCN_S(nn.Module):
 
 
 class RCN_W(nn.Module):
-    """menet networks with wide expansion
-    """
+    """menet networks with wide expansion"""
 
     def __init__(
         self, num_input, featuremaps, num_classes, num_layers=1, pool_size=5, **kwargs
@@ -407,8 +408,7 @@ class RCN_W(nn.Module):
 
 
 class RCN_P(nn.Module):
-    """menet networks with hybrid modules by NAS
-    """
+    """menet networks with hybrid modules by NAS"""
 
     def __init__(
         self, num_input, featuremaps, num_classes, num_layers=1, pool_size=5, **kwargs
@@ -464,8 +464,7 @@ class RCN_P(nn.Module):
 
 
 class RCN_C(nn.Module):
-    """menet networks with cascaded modules
-    """
+    """menet networks with cascaded modules"""
 
     def __init__(
         self, num_input, featuremaps, num_classes, num_layers=1, pool_size=5, **kwargs
@@ -475,14 +474,16 @@ class RCN_C(nn.Module):
         self.poolsize = pool_size
         num_channels = int(featuremaps / 2)
         # self.stream1 = nn.Sequential(
-        #     nn.Conv2d(num_input, num_channels, kernel_size=3, stride=1, padding=1), # 1->3
+        #     nn.Conv2d(num_input, num_channels, kernel_size=3, stride=1, padding=1),
+        # 1->3
         #     nn.ReLU(inplace=True),
         #     nn.BatchNorm2d(num_channels),
         #     nn.MaxPool2d(kernel_size=3, stride=3, padding=1),
         #     nn.Dropout(),
         # )
         # self.stream2 = nn.Sequential(
-        #     nn.Conv2d(num_input, num_channels, kernel_size=5, stride=1, padding=2), # 5,2/ 1,0
+        #     nn.Conv2d(num_input, num_channels, kernel_size=5, stride=1, padding=2),
+        # 5,2/ 1,0
         #     nn.ReLU(inplace=True),
         #     nn.BatchNorm2d(num_channels),
         #     nn.MaxPool2d(kernel_size=3, stride=3, padding=1),
@@ -558,8 +559,7 @@ class RCN_C(nn.Module):
 
 
 class RCN_F(nn.Module):
-    """menet networks with embedded modules as final fusion way
-    """
+    """menet networks with embedded modules as final fusion way"""
 
     def __init__(
         self, num_input, featuremaps, num_classes, num_layers=1, pool_size=5, **kwargs
@@ -569,14 +569,16 @@ class RCN_F(nn.Module):
         self.poolsize = pool_size
         num_channels = int(featuremaps / 2)
         # self.stream1 = nn.Sequential(
-        #     nn.Conv2d(num_input, num_channels, kernel_size=3, stride=1, padding=1), # 1->3
+        #     nn.Conv2d(num_input, num_channels, kernel_size=3, stride=1, padding=1),
+        # 1->3
         #     nn.ReLU(inplace=True),
         #     nn.BatchNorm2d(num_channels),
         #     nn.MaxPool2d(kernel_size=3, stride=3, padding=1),
         #     nn.Dropout(),
         # )
         # self.stream2 = nn.Sequential(
-        #     nn.Conv2d(num_input, num_channels, kernel_size=5, stride=1, padding=2), # 5,2/ 1,0
+        #     nn.Conv2d(num_input, num_channels, kernel_size=5, stride=1, padding=2),
+        # 5,2/ 1,0
         #     nn.ReLU(inplace=True),
         #     nn.BatchNorm2d(num_channels),
         #     nn.MaxPool2d(kernel_size=3, stride=3, padding=1),
