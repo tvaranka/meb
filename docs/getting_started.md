@@ -1,16 +1,23 @@
 # Getting started
 
+##### Requires Python >= 3.10
+
+#### Create a virtual environment
+```shell
+conda create --name meb_env python=3.10
+```
+
 #### Clone the library
 
 ```shell
-git clone https://github.com/tvaranka/Cross-dataset-micro-expression
+git clone https://github.com/tvaranka/meb
 ```
 
 #### Build
 
 ```shell
-cd Cross-dataset-micro-expression
-pip install .
+cd meb
+pip install -e .
 ```
 
 #### Adding datasets
