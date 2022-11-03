@@ -31,8 +31,8 @@ See [Getting started](docs/getting_started.md) for installing and adding dataset
 
 ## Installing
 ```shell
-git clone https://github.com/tvaranka/Cross-dataset-micro-expression
-cd Cross-dataset-micro-expression
+git clone https://github.com/tvaranka/meb
+cd meb
 pip install -e .
 ```
 
