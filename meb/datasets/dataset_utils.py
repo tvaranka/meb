@@ -305,7 +305,7 @@ class Dataset(ABC, DatasetConfig):
         When True, validation whether the dataset and data frame match is skipped.
     magnify_params : dict, optional, default={}
         Defines parameters for the magnification, requires that magnify is set to True.
-        The dict should contain "a", "r1" and "r2".
+        The dict should contain "alpha", "r1" and "r2".
 
     Examples
     --------
