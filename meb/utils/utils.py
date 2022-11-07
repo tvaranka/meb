@@ -221,7 +221,7 @@ def _try_object(obj):
 
 def validate_config(config: Config):
     """Validates whether the given objects are in the correct form."""
-    object_names = ["criterion", "evaluation_fn", "scheduler", "mixup_fn", "model"]
+    object_names = ["criterion", "evaluation_fn", "mixup_fn", "model"]
     for object_name in object_names:
         if isinstance(getattr(config, object_name), list):
             for obj in getattr(config, object_name):
