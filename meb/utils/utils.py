@@ -9,6 +9,7 @@ from torch import nn
 from torch.utils.data import Dataset
 
 from .metrics import MultiMetric
+from ..core import Config
 
 
 class MEData(Dataset):
@@ -200,6 +201,38 @@ class Printer:
         [metric.append(np.mean(metric)) for metric in metrics_au]
         [metric.append(np.mean(metric)) for metric in metrics_splits]
         return metrics_au, metrics_splits
+
+
+class ConfigException(Exception):
+    """Error in config type"""
+
+
+def _try_object(obj):
+    """Tests if an object is callable. If not, raise a ConfigException."""
+    if obj is None:
+        return
+    try:
+        obj()
+    except TypeError as e:
+        raise ConfigException(
+            f"Check that the objects in config are not constructed yet. {e}"
+        )
+
+
+def validate_config(config: Config):
+    """Validates whether the given objects are in the correct form."""
+    object_names = ["criterion", "evaluation_fn", "scheduler", "mixup_fn", "model"]
+    for object_name in object_names:
+        if isinstance(getattr(config, object_name), list):
+            for obj in getattr(config, object_name):
+                _try_object(obj)
+        else:
+            _try_object(getattr(config, object_name))
+    # Validate optimizer seperately
+    if "param_groups" in config.optimizer.__dict__:
+        raise ConfigException(
+            "Check that the optimizer in config is not constructed yet."
+        )
 
 
 # A constant dict for handy access to the commonly used action units

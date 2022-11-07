@@ -132,6 +132,9 @@ class Validator(ABC):
 
         self.printer = utils.Printer(self.cf, split_column=self.split_column)
 
+        # Validate config
+        utils.validate_config(self.cf)
+
     @abstractmethod
     def validate(self, df: pd.DataFrame, input_data: InputData, seed_n: int = 1):
         """Main validation function

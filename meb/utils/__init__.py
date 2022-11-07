@@ -2,7 +2,9 @@ from .utils import MEData
 from .utils import reset_weights
 from .utils import set_random_seeds
 from .utils import Printer
+from .utils import validate_config
 from .utils import dataset_aus
+
 
 from .mixup import MixUp
 from .mixup import CutMix
@@ -21,6 +23,7 @@ __all__ = [
     "reset_weights",
     "set_random_seeds",
     "Printer",
+    "validate_config",
     "dataset_aus",
     "MixUp",
     "CutMix",
