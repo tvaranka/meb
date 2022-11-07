@@ -43,4 +43,4 @@ class BaseTestDataset:
     @classmethod
     def setup_class(cls):
         # "per" is a fictitious dataset
-        cls.per = PER()
+        cls.per = PER
