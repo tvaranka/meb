@@ -3,11 +3,15 @@ from functools import partial
 import pytest
 import torch.nn as nn
 
+from meb.datasets.dataset_utils import LazyDataLoader, LoadedDataLoader
 from meb.core import Config  # , CrossDatasetValidator
 from meb import utils, models
 from meb.utils.utils import ConfigException, validate_config
 
 # from ..test_data.base import BaseTestDataset
+
+a = LazyDataLoader
+b = LoadedDataLoader
 
 
 def _copy_class_object(obj: object):
