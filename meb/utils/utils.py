@@ -9,7 +9,6 @@ from torch import nn
 from torch.utils.data import Dataset
 
 from .metrics import MultiMetric
-from ..core import Config
 
 
 class MEData(Dataset):
@@ -219,7 +218,7 @@ def _try_object(obj):
         )
 
 
-def validate_config(config: Config):
+def validate_config(config):
     """Validates whether the given objects are in the correct form."""
     object_names = ["criterion", "evaluation_fn", "mixup_fn", "model"]
     for object_name in object_names:
