@@ -3,9 +3,10 @@ from functools import partial
 import pytest
 import torch.nn as nn
 
-from meb.core import Config
+from meb.core import Config, CrossDatasetValidator
 from meb import utils, models
 from meb.utils.utils import ConfigException, validate_config
+from ..test_data.base import BaseTestDataset
 
 
 def _copy_class_object(obj: object):
@@ -37,3 +38,23 @@ def test_incorrect_config():
     cf.model = models.SSSNet(num_classes=9)
     with pytest.raises(ConfigException):
         validate_config(cf)
+
+
+def test_validators():
+    cf = _copy_class_object(Config)
+    cf.model = partial(models.SSSNet, num_classes=9)
+    v = CrossDatasetValidator(cf)
+    assert v.split_column == "dataset"
+
+
+class TestValidator(BaseTestDataset):
+    def test_validate_output(self):
+        # Should be output list
+        pass
+
+    def test_validate_print(self):
+        # Test final printing output
+        pass
+
+    def test_printer(self):
+        pass
