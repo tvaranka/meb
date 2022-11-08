@@ -6,7 +6,7 @@ import torch.nn as nn
 from meb.core import Config, CrossDatasetValidator
 from meb import utils, models
 from meb.utils.utils import ConfigException, validate_config
-from ..test_data.base import BaseTestDataset
+from .base import BaseTestDataset
 
 
 def _copy_class_object(obj: object):
