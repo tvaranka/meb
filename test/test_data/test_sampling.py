@@ -4,8 +4,6 @@ import numpy as np
 
 from meb.datasets import UniformTemporalSubsample, NoisyUniformTemporalSubsample
 
-np.randn = np.random.randn
-
 
 @pytest.mark.parametrize(
     "sampling_class_type", [UniformTemporalSubsample, NoisyUniformTemporalSubsample]
