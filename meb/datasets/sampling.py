@@ -71,25 +71,32 @@ class NoisyUniformTemporalSubsample(BaseTemporalSubSample):
     ----------
     noise_type : str, optional, default "auto"
         Defines the type of added noise.
+    prob : float, optional, default 0.5
+        The probability of the augmentation being applied
     """
 
     __doc__ += BaseTemporalSubSample.__doc__
 
     def __init__(
-        self, num_samples: int, noise_type: int = "auto", temporal_dim: int = -4
+        self,
+        num_samples: int,
+        temporal_dim: int = -4,
+        noise_type: int = "auto",
+        prob: float = 0.5,
     ):
         super().__init__(num_samples, temporal_dim)
         self.noise_type = noise_type
+        self.prob = prob
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         self._check_validity(x)
         if self.noise_type == "auto":
             random_offset = np.random.randint(0, self.t - self.num_samples + 1)
         rand_num = np.random.random()
-        if rand_num < 0.5:
+        if rand_num < self.prob:
             # Uniform
             indices = np.linspace(0, self.t - 1, self.num_samples)
-        if rand_num > 0.75:
+        if rand_num > 1 - (self.prob / 2):
             indices = np.linspace(0 + random_offset, self.t, self.num_samples)
         else:
             indices = np.linspace(0, self.t - random_offset, self.num_samples)
