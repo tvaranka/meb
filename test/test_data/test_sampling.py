@@ -4,6 +4,8 @@ import numpy as np
 
 from meb.datasets import UniformTemporalSubsample, NoisyUniformTemporalSubsample
 
+np.randn = np.random.randn
+
 
 @pytest.mark.parametrize(
     "sampling_class_type", [UniformTemporalSubsample, NoisyUniformTemporalSubsample]
@@ -45,3 +47,15 @@ def test_incorrect_shape(sampling_class_type, array_type):
     x = array_type((3, 16, 16, 8))
     with pytest.raises(AssertionError):
         sampler(x)
+
+
+@pytest.mark.parametrize("backend", [torch, np])
+def test_noisy_uniform(backend):
+    num_samples = 8
+    np.random.seed(0)
+    u_sampler = UniformTemporalSubsample(num_samples)
+    nu_sampler = NoisyUniformTemporalSubsample(num_samples)
+    x = backend.ones((100, 3, 16, 16))
+    for i, a in enumerate(x):
+        a *= i
+    assert backend.all(u_sampler(x)[1:-1] != nu_sampler(x)[1:-1])
