@@ -9,6 +9,14 @@ class BaseTemporalSubSample(ABC):
     """
     Abstract class for temporal subsampling techniques.
     Abstracts num_samples and temporal_dim.
+
+    Parameters
+    ----------
+    num_samples : int
+        The number of samples to be sampled
+    temporal_dim : int
+        The index of the temporal dimension. Defaults to -4, i.e., the second
+        dimension in a shape 5 tensor.
     """
 
     def __init__(self, num_samples: int, temporal_dim: int = -4):
@@ -36,6 +44,13 @@ class BaseTemporalSubSample(ABC):
 
 
 class UniformTemporalSubsample(BaseTemporalSubSample):
+    """Uniform sampling
+
+    Sample frames based on a uniform distribution.
+    """
+
+    __doc__ += BaseTemporalSubSample.__doc__
+
     def __init__(self, num_samples: int, temporal_dim: int = -4):
         super().__init__(num_samples, temporal_dim)
 
@@ -47,16 +62,36 @@ class UniformTemporalSubsample(BaseTemporalSubSample):
 
 
 class NoisyUniformTemporalSubsample(BaseTemporalSubSample):
+    """Noisy sampling
+
+    Adds noise to the uniform sampling such that it is started later
+    or stopped later
+
+    Parameters
+    ----------
+    noise_type : str, optional, default "auto"
+        Defines the type of added noise.
+    """
+
+    __doc__ += BaseTemporalSubSample.__doc__
+
     def __init__(
-        self, num_samples: int, noise_level: int = "auto", temporal_dim: int = -4
+        self, num_samples: int, noise_type: int = "auto", temporal_dim: int = -4
     ):
         super().__init__(num_samples, temporal_dim)
-        self.noise_level = noise_level
+        self.noise_type = noise_type
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
         self._check_validity(x)
-        if self.noise_level == "auto":
-            max_f = np.random.randint(self.num_samples, self.t - 1)
-        indices = np.linspace(0, max_f, self.num_samples)
+        if self.noise_type == "auto":
+            random_offset = np.random.randint(0, self.t - self.num_samples + 1)
+        rand_num = np.random.random()
+        if rand_num < 0.5:
+            # Uniform
+            indices = np.linspace(0, self.t - 1, self.num_samples)
+        if rand_num > 0.75:
+            indices = np.linspace(0 + random_offset, self.t, self.num_samples)
+        else:
+            indices = np.linspace(0, self.t - random_offset, self.num_samples)
         indices = np.clip(indices, 0, self.t - 1).astype("int")
         return np.take(x, indices, self.temporal_dim)
