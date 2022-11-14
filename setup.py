@@ -2,16 +2,18 @@ from setuptools import setup, find_packages
 
 
 def parse_requirements(filename):
-    """ load requirements from a pip requirements file """
+    """load requirements from a pip requirements file"""
     lineiter = (line.strip() for line in open(filename))
     return [line for line in lineiter if line and not line.startswith("#")]
 
+
 setup(
     name="meb",
-    version='1.0',
+    version="1.0",
     packages=find_packages(),
     install_requires=parse_requirements("requirements.txt"),
     extras_require={
-        "optional": parse_requirements("optional_requirements.txt")
-    }
+        "optional": parse_requirements("optional_requirements.txt"),
+        "actions": parse_requirements("requirements.txt") + ["pytest", "pytest-mock"],
+    },
 )
