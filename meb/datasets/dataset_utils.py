@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import cv2
 from skimage.transform import resize as sk_resize
 
-from get_image_size import get_image_size
+import get_image_size
 from config.dataset_config import DatasetConfig
 import py_evm
 
@@ -155,7 +155,7 @@ class LazyDataLoader:
             uint8 data type.
         """
         # Get image size without loading it
-        w, h = get_image_size(image_paths[0])
+        w, h = get_image_size.get_image_size(image_paths[0])
         # Number of frames
         f = len(image_paths)
         resize = self.resize
