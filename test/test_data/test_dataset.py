@@ -1,7 +1,42 @@
-from .base import BaseTestDataset
-from meb.datasets.dataset_utils import LazyDataLoader, LoadedDataLoader
+import os
+from typing import List
 
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import pytest
+import get_image_size
+
+from meb import datasets
+from .base import BaseTestDataset
+from meb.datasets.dataset_utils import LazyDataLoader, LoadedDataLoader
+from meb.utils.utils import ConfigException
+
+
+def _dummy_reader(column_names: List[str]):
+    return lambda _: pd.DataFrame(0, columns=column_names, index=[1])
+
+
+def test_smic(mocker):
+    column_names = [
+        "Unnamed: 0",
+        "offset",
+        "onset",
+        "subject",
+        "subject",
+        "material",
+        "emotion",
+    ]
+    mocker.patch.object(pd, "read_excel", _dummy_reader(column_names))
+    mocker.patch.object(os, "listdir", lambda _: ["img1.jpg"])
+    mocker.patch.object(get_image_size, "get_image_size", lambda _: (12, 12))
+    mocker.patch.object(plt, "imread", lambda _: np.zeros((12, 12)))
+    c = datasets.Smic(ignore_validation=True)
+    try:
+        c.data_frame
+        c.data[0]
+    except ConfigException:
+        pytest.fail("An exception was raised when it should not have been.")
 
 
 class TestCustomDataset(BaseTestDataset):
