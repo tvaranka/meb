@@ -9,7 +9,7 @@ MEB aims to simplify, standardize and streamline the process of micro-expression
 The following example shows how to run a pretrained ResNet18 on the cross dataset protocol using optical flow as input.
 
 ```python
-from meb import core, datasets, utils
+from meb import core, datasets
 from functools import partial
 from timm import models
 
