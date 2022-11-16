@@ -1,5 +1,5 @@
 import os
-from typing import List
+from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
@@ -11,32 +11,6 @@ from meb import datasets
 from .base import BaseTestDataset
 from meb.datasets.dataset_utils import LazyDataLoader, LoadedDataLoader
 from meb.utils.utils import ConfigException
-
-
-def _dummy_reader(column_names: List[str]):
-    return lambda _: pd.DataFrame(0, columns=column_names, index=[1])
-
-
-def test_smic(mocker):
-    column_names = [
-        "Unnamed: 0",
-        "offset",
-        "onset",
-        "subject",
-        "subject",
-        "material",
-        "emotion",
-    ]
-    mocker.patch.object(pd, "read_excel", _dummy_reader(column_names))
-    mocker.patch.object(os, "listdir", lambda _: ["img1.jpg"])
-    mocker.patch.object(get_image_size, "get_image_size", lambda _: (12, 12))
-    mocker.patch.object(plt, "imread", lambda _: np.zeros((12, 12)))
-    c = datasets.Smic(ignore_validation=True)
-    try:
-        c.data_frame
-        c.data[0]
-    except ConfigException:
-        pytest.fail("An exception was raised when it should not have been.")
 
 
 class TestCustomDataset(BaseTestDataset):
@@ -78,3 +52,26 @@ class TestCustomDataset(BaseTestDataset):
         c = self.per()
         cm = self.per(magnify=True)
         assert ~np.allclose(c.data[0].astype("float32") / 255.0, cm.data[0])
+
+
+@pytest.mark.parametrize(
+    "dataset_name", ["Smic", "Casme", "Casme2", "Fourd", "Casme3A", "Casme3C"]
+)
+def test_datasets(dataset_name, mocker):
+    # Setup mocks for data loading
+    mm = MagicMock(spec=pd.DataFrame)
+    mm.drop.return_value = mm
+    mm.rename.return_value = mm
+    mm.iterrows = MagicMock(return_value=[[MagicMock()] * 2])
+    mocker.patch.object(pd, "read_excel", lambda _: mm)
+    mocker.patch.object(os, "listdir", lambda _: ["img1.jpg"])
+    mocker.patch.object(get_image_size, "get_image_size", lambda _: (12, 12))
+    mocker.patch.object(plt, "imread", lambda _: np.zeros((12, 12)))
+
+    # Actual test
+    c = getattr(datasets, dataset_name)(ignore_validation=True)
+    try:
+        c.data_frame
+        c.data[0]
+    except ConfigException:
+        pytest.fail("An exception was raised when it should not have been.")
