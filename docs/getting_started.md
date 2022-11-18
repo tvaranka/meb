@@ -23,7 +23,7 @@ pip install -e .
 #### Adding datasets
 Due to private data (faces) appearing in micro-expression datasets they are only available after accepting the release agreement. See [Micro-expression datasets](micro_expression_datasets.md) for more information on where to obtain the datasets. 
 
-The datasets can be added to the framework by two ways.
+The datasets can be added to the framework by two ways. It is recommended to start by just adding the `excel_path` and `dataset_path` (or cropped or optical_flow) for a single dataset and testing whether it works with the instructions below. If the test passes, you can proceed with adding other datasets and sources.
 ##### 1. Modifying the path in `config/dataset_config.py`
 
 The `DatasetConfig` consists of all the paths to the datasets. Each dataset has four different paths: `excel_path`, `cropped_dataset_path`, `dataset_path` and `optical_flow` paths. (TODO: create scripts that create the cropped and optical flow datasets) The variable names in the `DatasetConfig` should not be changed, but the paths can be changed freely.
@@ -50,10 +50,14 @@ ln -sfn "my_path/micro_expressions/SMIC/Preprocessed data/smic_uv_frames_secrets
 ```
 See `create_sym_links.sh` for the whole script.
 
-#### Run the getting_started.ipynb/py
-```shell
-python experiments/getting_started.py
-```
+#### Test whether the data addition was succesfull
+To test if the data addition was succesfull run the `tools/dataset_setup_test.py`. As arguments the scripts takes `--dataset_name` from the following list [Smic/Casme/Casme2/Samm/Mmew/Fourd/Casme3A/Casme3C/Megc/CrossDataset] (note the capitalization) and `--data_type` from the list [original/cropped/optical_flow].
 
+```shell
+python tools/dataset_setup_test.py --dataset_name Smic --data_type optical_flow
+```
+If the loading was succesfull you should see a shape of the first sample of the dataset. If it was unsuccesfull you should see a `FileNotFoundError`. (Note: you may see some warnings if the image data is inconsistent with the metadata)
+
+#### What's next
 Browse the `experiments` folder to find more examples and see documentation on [datasets](datasets.md), [configs](config.md) and [validation](validation.md).
 
