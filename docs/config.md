@@ -9,6 +9,7 @@ class Config:
 Inheritance of classes is used to avoid writing commonly used configurations
 
 ```python
+# Also contains all the attributes from Config
 class ExtendedConfig(Config):
     epochs = 100
 ```
@@ -31,25 +32,23 @@ The default config to be inherited is defined in meb.core.
 
 ```python
 class Config:
-    """
-    Used to store config values.
-    """
-    action_units = None
+    action_units = utils.dataset_aus["cross"]
     print_loss_interval = None
     validation_interval = None
-    device = torch.device("cuda:0")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     epochs = 200
     criterion = utils.MultiLabelBCELoss
     evaluation_fn = partial(utils.MultiLabelF1Score, average="macro")
     # Optimizer
-    optimizer = partial(optim.AdamW, lr=5e-4, weight_decay=5e-2)
-    scheduler = partial(CosineLRScheduler, t_initial=epochs, warmup_lr_init=1e-6, warmup_t=20, lr_min=1e-6)
+    optimizer = partial(optim.Adam, lr=1e-4, weight_decay=1e-3)
+    scheduler = None
     # Dataloader
     batch_size = 32
     train_transform = {"spatial": None, "temporal": None}
     test_transform = {"spatial": None, "temporal": None}
     mixup_fn = None
     num_workers = 2
+    model = None
 ```
 #### Practical use
 Let's create a `Config` using Resnet18 for action unit detection on SAMM. We define the `action_units` to be used. The number of `epochs` is overwritten to 50 and `batch_size` to 64. A transform is added and the model is added a partial, with the `pretrained` and `num_classes` parameters
