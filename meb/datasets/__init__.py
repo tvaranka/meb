@@ -4,10 +4,10 @@ from .datasets import Casme2
 from .datasets import Casme3A
 from .datasets import Casme3C
 from .datasets import Casme3
-from .datasets import SAMM
+from .datasets import Samm
 from .datasets import Fourd
-from .datasets import MMEW
-from .datasets import MEGC
+from .datasets import Mmew
+from .datasets import Megc
 from .datasets import CrossDataset
 
 
@@ -21,10 +21,10 @@ __all__ = [
     "Casme3A",
     "Casme3C",
     "Casme3",
-    "SAMM",
+    "Samm",
     "Fourd",
-    "MMEW",
-    "MEGC",
+    "Mmew",
+    "Megc",
     "CrossDataset",
     "UniformTemporalSubsample",
     "NoisyUniformTemporalSubsample",

@@ -197,7 +197,7 @@ class Casme2(dataset_utils.Dataset):
         return df
 
 
-class SAMM(dataset_utils.Dataset):
+class Samm(dataset_utils.Dataset):
     """SAMM Dataset
 
     Loads the SAMM (Spontaneous micro-movement) dataset.
@@ -321,7 +321,7 @@ class Fourd(dataset_utils.Dataset):
         return df
 
 
-class MMEW(dataset_utils.Dataset):
+class Mmew(dataset_utils.Dataset):
     """MMEW Dataset
 
     Loads the MMEW (Micro- and Macro-Expression Warehouse) dataset.
@@ -634,7 +634,7 @@ class CrossDataset(dataset_utils.Dataset):
                 optical_flow=optical_flow,
                 **kwargs,
             )
-            for dataset in [Casme, Casme2, SAMM, Fourd, MMEW, Casme3A]
+            for dataset in [Casme, Casme2, Samm, Fourd, Mmew, Casme3A]
         ]
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
@@ -691,7 +691,7 @@ class CrossDataset(dataset_utils.Dataset):
         return df
 
 
-class MEGC(dataset_utils.Dataset):
+class Megc(dataset_utils.Dataset):
     """CASME3 Dataset
 
     Combines part A and C together.
@@ -724,7 +724,7 @@ class MEGC(dataset_utils.Dataset):
                 optical_flow=optical_flow,
                 **kwargs,
             )
-            for dataset in [Smic, Casme2, SAMM]
+            for dataset in [Smic, Casme2, Samm]
         ]
         super().__init__(color, resize, cropped, optical_flow, **kwargs)
 
