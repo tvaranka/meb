@@ -6,4 +6,4 @@ Results and code are shared in a jupyter notebook. The notebooks can be viewed d
 
 [Benchmarks](Benchmarks) contains notebooks with results and code to reimplement from Tables 7 and 8.
 
-[paper_experiments](paper_experiemnts) contains notebooks with results and code to reimplement other tables and figures in the paper.
+[paper_experiments](paper_experiments) contains notebooks with results and code to reimplement other tables and figures in the paper.
