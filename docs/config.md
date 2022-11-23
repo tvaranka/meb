@@ -1,3 +1,8 @@
+1. [Getting started](getting_started.md)
+2. [Datasets](datasets.md)
+3. [Config](config.md)
+4. [Validator](validator.md)
+
 # Config
 Config is used to gather all information regarding the configuration of the experiment. Configs are python classes with the configuration details given as class attributes.
 
@@ -67,3 +72,8 @@ class ResNetConfig(core.Config):
     }
     model = partial(models.resnet18, num_classes=len(action_units), pretrained=True)
 ```
+
+1. [Getting started](getting_started.md)
+2. [Datasets](datasets.md)
+3. [Config](config.md)
+4. [Validator](validator.md)
