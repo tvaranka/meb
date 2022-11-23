@@ -1,3 +1,8 @@
+1. [Getting started](getting_started.md)
+2. [Datasets](datasets.md)
+3. [Config](config.md)
+4. [Validator](validator.md)
+
 # Getting started
 
 ##### Requires Python >= 3.10
@@ -59,5 +64,9 @@ python tools/dataset_setup_test.py --dataset_name Smic --data_type optical_flow
 If the loading was succesfull you should see a shape of the first sample of the dataset. If it was unsuccesfull you should see a `FileNotFoundError`. (Note: you may see some warnings if the image data is inconsistent with the metadata)
 
 #### What's next
-Browse the `experiments` folder to find more examples and see documentation on [datasets](datasets.md), [configs](config.md) and [validation](validation.md).
+See documentation on [datasets](datasets.md), [configs](config.md) and [validation](validation.md) or browse the `experiments` folder to find more examples.
 
+1. [Getting started](getting_started.md)
+2. [Datasets](datasets.md)
+3. [Config](config.md)
+4. [Validator](validator.md)
