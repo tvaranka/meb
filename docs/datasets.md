@@ -1,5 +1,10 @@
+1. [Getting started](getting_started.md)
+2. [Datasets](datasets.md)
+3. [Config](config.md)
+4. [Validator](validator.md)
+
 # Data loading
-Datasets are loaded as *dataset* objects. For example 
+See [Getting started](getting_started.md) to first add datasets. Datasets are loaded as *dataset* objects. For example 
 
 ```python
 from meb import datasets
@@ -85,5 +90,8 @@ casme2 = datasets.Casme2(
 )
 ```
 
-
+1. [Getting started](getting_started.md)
+2. [Datasets](datasets.md)
+3. [Config](config.md)
+4. [Validator](validator.md)
 
