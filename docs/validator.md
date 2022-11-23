@@ -1,3 +1,8 @@
+1. [Getting started](getting_started.md)
+2. [Datasets](datasets.md)
+3. [Config](config.md)
+4. [Validator](validator.md)
+
 # Training and validation
 The training and validation uses the `core` of the library. A *validator* is created based on the validation style
 
@@ -70,4 +75,10 @@ class HandCraftedCrossValidator(core.CrossDatasetValidator):
         test_metrics, outputs_test = self.evaluate_model(test_data, test_labels, test=True)
         return train_metrics, test_metrics, outputs_test
 ```
+#### What's next?
+See [Experiments](../experiments) to find examples on how to use the library.
 
+1. [Getting started](getting_started.md)
+2. [Datasets](datasets.md)
+3. [Config](config.md)
+4. [Validator](validator.md)
