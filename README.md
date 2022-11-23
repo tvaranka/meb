@@ -36,4 +36,12 @@ cd meb
 pip install -e .
 ```
 
-Citation
+## Citation
+```
+@article{meb,
+  author = {Varanka, Tuomas and Li, Yante and Peng, Wei and Zhao, Guoying},
+  title = {Data Leakage and Evaluation Issues in Micro-Expression Analysis},
+  journal={arXiv preprint arXiv:2211.11425},
+  year = {2022},
+}
+```
