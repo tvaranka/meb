@@ -9,10 +9,10 @@ cf = type(
     "Config",
     (object,),
     {
-        "per_excel_path": "test/data/per_annotation.xlsx",
-        "per_dataset_path": "test/data/PER",
-        "per_cropped_dataset_path": "test/data/PER_cropped",
-        "per_optical_flow": "test/data/per_of.npy",
+        "per_excel_path": "tests/data/per_annotation.xlsx",
+        "per_dataset_path": "tests/data/PER",
+        "per_cropped_dataset_path": "tests/data/PER_cropped",
+        "per_optical_flow": "tests/data/per_of.npy",
     },
 )
 
