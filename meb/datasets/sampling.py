@@ -4,6 +4,10 @@ from typing import Union
 import numpy as np
 import torch
 
+# Inspired from
+# https://pytorchvideo.readthedocs.io/en/latest/_modules/pytorchvideo/transforms/
+# functional.html#uniform_temporal_subsample
+
 
 class BaseTemporalSubSample(ABC):
     """
