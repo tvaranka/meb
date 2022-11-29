@@ -1,13 +1,5 @@
-from .me_networks import SSSNet
-from .me_networks import STSTNet
-from .me_networks import OffApexNet
-
-from .RCNs import RCN_A
-from .RCNs import RCN_C
-from .RCNs import RCN_W
-from .RCNs import RCN_F
-from .RCNs import RCN_P
-from .RCNs import RCN_S
+from .me_networks import OffApexNet, SSSNet, STSTNet
+from .RCNs import RCN_A, RCN_C, RCN_F, RCN_P, RCN_S, RCN_W
 
 __all__ = [
     "SSSNet",

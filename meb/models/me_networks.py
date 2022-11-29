@@ -1,8 +1,8 @@
 from typing import List
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch
 
 
 class SSSNet(nn.Module):
@@ -33,13 +33,14 @@ class SSSNet(nn.Module):
     Electronic Imaging, 33, 157-1 - 157-8.
     <10.2352/ISSN.2470-1173.2021.11.HVEI-157>`
     """
+
     def __init__(
         self,
         num_classes: int = 3,
         h_dims: List[int] = [32, 64, 256],
         dropout: float = 0.5,
         softmax=False,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
         self.num_classes = num_classes
@@ -56,7 +57,7 @@ class SSSNet(nn.Module):
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.drop2 = nn.Dropout2d(dropout)
 
-        self.fc1 = nn.Linear(9 ** 2 * h2, h3)
+        self.fc1 = nn.Linear(9**2 * h2, h3)
         self.drop3 = nn.Dropout(dropout)
         self.fc = nn.Linear(h3, num_classes)
         self.softmax = None
@@ -96,6 +97,7 @@ class STSTNet(nn.Module):
     IEEE International Conference on Automatic Face & Gesture Recognition, 14, 1-5.
     <10.1109/FG.2019.8756567>`
     """
+
     def __init__(self, in_channels: int = 3, num_classes: int = 3, **kwargs):
         super().__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels=3, kernel_size=3, padding=2)
@@ -144,6 +146,7 @@ class OffApexNet(nn.Module):
     Signal Processing: Image Communication, 74, 129-139.
     <10.1016/j.image.2019.02.005>`
     """
+
     def __init__(self, num_classes: int = 3, dropout: float = 0.5, **kwargs):
         super().__init__()
         self.conv1 = nn.Conv2d(
@@ -156,7 +159,7 @@ class OffApexNet(nn.Module):
         )
         self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
 
-        self.fc1 = nn.Linear(7 ** 2 * 16, 1024)
+        self.fc1 = nn.Linear(7**2 * 16, 1024)
         self.drop = nn.Dropout(dropout)
         self.fc = nn.Linear(1024, num_classes)
         self.drop2 = nn.Dropout(dropout)

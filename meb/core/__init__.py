@@ -1,8 +1,10 @@
-from .train_eval import Config
-from .train_eval import Validator
-from .train_eval import CrossDatasetValidator
-from .train_eval import IndividualDatasetAUValidator
-from .train_eval import MEGCValidator
+from .train_eval import (
+    Config,
+    CrossDatasetValidator,
+    IndividualDatasetAUValidator,
+    MEGCValidator,
+    Validator,
+)
 
 __all__ = [
     "Config",

@@ -1,16 +1,17 @@
 import os
 from unittest.mock import MagicMock
 
+import get_image_size
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import pytest
-import get_image_size
 
 from meb import datasets
-from .base import BaseTestDataset
 from meb.datasets.dataset_utils import LazyDataLoader, LoadedDataLoader
 from meb.utils.utils import ConfigException
+
+from .base import BaseTestDataset
 
 
 class TestCustomDataset(BaseTestDataset):

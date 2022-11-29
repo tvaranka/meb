@@ -1,5 +1,5 @@
-from typing import Sequence
 from functools import cached_property
+from typing import Sequence
 
 import pandas as pd
 

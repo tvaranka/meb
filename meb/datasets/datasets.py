@@ -1,10 +1,10 @@
-from typing import Sequence
-from . import dataset_utils
-
 from functools import cached_property
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
+
+from . import dataset_utils
 
 
 class Smic(dataset_utils.Dataset):

@@ -1,8 +1,8 @@
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
-from meb.datasets import UniformTemporalSubsample, NoisyUniformTemporalSubsample
+from meb.datasets import NoisyUniformTemporalSubsample, UniformTemporalSubsample
 
 
 @pytest.mark.parametrize(

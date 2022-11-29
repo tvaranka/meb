@@ -1,21 +1,20 @@
 import os
 import re
-from itertools import chain
-from typing import List, Tuple, Sequence, Callable
 from abc import ABC, abstractmethod
-from tqdm import tqdm
 from functools import cached_property
+from itertools import chain
+from typing import Callable, List, Sequence, Tuple
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 import cv2
-from skimage.transform import resize as sk_resize
-
 import get_image_size
-from config.dataset_config import DatasetConfig
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import py_evm
+from skimage.transform import resize as sk_resize
+from tqdm import tqdm
 
+from config.dataset_config import DatasetConfig
 
 PandasIndex = pd.DataFrame | pd.Series
 

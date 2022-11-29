@@ -1,5 +1,5 @@
-import torch
 import pytorchvideo.transforms
+import torch
 
 # Uses CutMix from pytorchvideo, but _mix_labels function has been modified
 # to work with multi-label inputs

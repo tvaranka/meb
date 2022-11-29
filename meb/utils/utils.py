@@ -1,6 +1,6 @@
-from typing import List, Sequence, Tuple
-from functools import partial
 import random
+from functools import partial
+from typing import List, Sequence, Tuple
 
 import numpy as np
 import pandas as pd

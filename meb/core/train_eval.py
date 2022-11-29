@@ -1,14 +1,14 @@
 from abc import ABC, abstractmethod
-from tqdm import tqdm
-from typing import Tuple, List, Union, Sequence
 from datetime import datetime
+from functools import partial
+from typing import List, Sequence, Tuple, Union
 
 import numpy as np
-import torch
 import pandas as pd
+import torch
 from sklearn.preprocessing import LabelEncoder
-from functools import partial
 from torch import optim
+from tqdm import tqdm
 
 from meb import utils
 from meb.datasets.dataset_utils import InputData

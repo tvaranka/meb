@@ -1,7 +1,8 @@
-import numpy as np
 import cv2
-import dlib
+import numpy as np
 from numba import jit
+
+import dlib
 
 
 def bitget(n, i):

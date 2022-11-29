@@ -1,9 +1,9 @@
 from typing import List
 
-import torch
 import numpy as np
-from torch import nn
+import torch
 from sklearn.metrics import f1_score, roc_auc_score
+from torch import nn
 
 
 class MultiTaskLoss(nn.Module):
