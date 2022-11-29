@@ -1,5 +1,5 @@
-import pytorchvideo.transforms
 import torch
+from pytorchvideo import transforms  # type: ignore
 
 # Uses CutMix from pytorchvideo, but _mix_labels function has been modified
 # to work with multi-label inputs
@@ -7,7 +7,7 @@ import torch
 
 def _mix_labels(
     labels: torch.Tensor,
-    num_classes: int = None,
+    num_classes: int | None = None,
     lam: float = 1.0,
     label_smoothing: float = 0.0,
 ):
@@ -38,7 +38,7 @@ def _mix_labels(
     return lam * y + (1.0 - lam) * y.flip(0)
 
 
-pytorchvideo.transforms.mix._mix_labels = _mix_labels
-CutMix = pytorchvideo.transforms.CutMix
-MixUp = pytorchvideo.transforms.MixUp
-MixVideo = pytorchvideo.transforms.MixVideo
+transforms.mix._mix_labels = _mix_labels
+CutMix = transforms.CutMix
+MixUp = transforms.MixUp
+MixVideo = transforms.MixVideo
