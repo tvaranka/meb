@@ -11,15 +11,25 @@ def _mix_labels(
     lam: float = 1.0,
     label_smoothing: float = 0.0,
 ):
-    """
-    This function converts class indices to one-hot vectors and mix labels, given the
-    number of classes.
+    """Custom mix_labels function for multi-label inputs
 
-    Args:
-        labels (torch.Tensor): Class labels.
-        num_classes (int): Total number of classes.
-        lam (float): lamba value for mixing labels.
-        label_smoothing (float): Label smoothing value.
+    Performs label smoothing and label mixing for multi-label inputs.
+
+    Parameters
+    ----------
+    labels : torch.Tensor
+        Multi-labels used in the training
+    num_classes : int
+        Required by the API but not used
+    lam : float
+        Lambda value used for mixing labels
+    label_smoothing : float
+        Value for label smoothing between [0, 1]
+
+    Returns
+    -------
+    Out : torch.Tensor
+        Smoothed and/or mixed labels
     """
     off_value = label_smoothing / labels.shape[-1]
     on_value = 1 - label_smoothing + off_value
