@@ -163,6 +163,20 @@ class Validator(ABC):
         """Constructs pytorch dataloader
 
         Uses InputData to construct a pytorch dataloader and applies transforms.
+
+        Parameters
+        ----------
+        data : InputData
+            The raw data (RGB or optical flow)
+        labels : np.ndarray
+            Labels corresponding to the input data.
+        train : bool
+            When set to true applies train transforms, otherwise uses test transforms
+
+        Returns
+        -------
+        out : torch.utils.data.Dataloader
+            Returns a torch dataloader object for training
         """
         if train:
             transform = self.cf.train_transform
@@ -322,7 +336,13 @@ class Validator(ABC):
 
 
 class CrossDatasetValidator(Validator):
-    """Validator for cross-dataset protocol"""
+    """Validator for cross-dataset protocol
+
+    Expects multiple datasets with 'dataset' column in the dataframe and action units
+    as labels. A leave-one-dataset-out protocol is performed, where a single dataset
+    is used as the testing and the rest as training data. This is performed such that
+    all datasets are the testing data once.
+    """
 
     __doc__ += Validator.__doc__
 

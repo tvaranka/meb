@@ -12,6 +12,12 @@ from .metrics import MultiMetric
 
 
 class MEData(Dataset):
+    """Micro-expression dataloader
+
+    A pytorch dataset for performing data loading in batches and applying
+    transformations.
+    """
+
     def __init__(
         self,
         frames: np.ndarray,
@@ -52,12 +58,31 @@ class MEData(Dataset):
 
 
 def reset_weights(m: nn.Module) -> None:
+    """Reset weights
+
+    Reset weights of a pytorch module.
+
+    Parameters
+    ----------
+    m : torch.nn.Module
+        A pytorch module with weights.
+    """
     for layer in m.children():
         if hasattr(layer, "reset_parameters"):
             layer.reset_parameters()
 
 
 def set_random_seeds(seed: int = 1) -> None:
+    """Sets a random seed
+
+    Sets seed across python, numpy and torch of stochastic functions
+    for deterministic output.
+
+    Parameters
+    ----------
+    seed : int
+        Seed value that can be used for reproducing results.
+    """
     random.seed(seed)
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -67,6 +92,11 @@ def set_random_seeds(seed: int = 1) -> None:
 
 
 class Printer:
+    """Prints metrics
+
+    Prints metrics during training and evaluation.
+    """
+
     def __init__(self, config, split_column: str):
         self.cf = config
         self.split_column = split_column
