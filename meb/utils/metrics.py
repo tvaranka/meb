@@ -6,48 +6,52 @@ from sklearn.metrics import f1_score, roc_auc_score
 from torch import nn
 
 
-class MultiTaskLoss(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.criterion = nn.CrossEntropyLoss()
-
-    def forward(self, predictions: List[torch.tensor], labels: torch.tensor) -> float:
-        task_num = len(predictions)
-        losses = [self.criterion(predictions[i], labels[:, i]) for i in range(task_num)]
-        return sum(losses)
-
-
-class MultiTaskF1(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-    @staticmethod
-    def forward(labels: torch.tensor, predictions: torch.tensor) -> List[float]:
-        task_num = predictions.shape[-1]
-        f1s = [
-            f1_score(labels[:, i], predictions[:, i], average="macro")
-            for i in range(task_num)
-        ]
-        return f1s
-
-
 class MultiLabelBCELoss(nn.Module):
-    def __init__(self, weight: torch.tensor = None):
-        super().__init__()
-        self.loss = nn.BCEWithLogitsLoss(weight=weight)
+    """Multi-label loss wrapper
 
-    def forward(self, x, y):
-        loss = self.loss(x, y.float())
+    Uses binary cross-entropy with logits to compute loss for
+    multi-label cases.
+
+    Parameters
+    ----------
+    weight : torch.tensor, optional
+        Weights classes using the provided weight. See torch documentation.
+
+    """
+
+    def __init__(self, weight: torch.tensor = None, **kwargs):
+        super().__init__()
+        self.loss = nn.BCEWithLogitsLoss(weight=weight, **kwargs)
+
+    def forward(self, outputs: torch.tensor, labels: torch.tensor) -> float:
+        loss = self.loss(outputs, labels.float())
         return loss
 
 
 class MultiLabelF1Score(nn.Module):
-    def __init__(self, average: str = None):
+    """Multi-label F1-Score
+
+    Computes F1-Score for multi-label cases. First, thresholds the output from a
+    network to obtain binary predictions.
+
+    Parameters
+    ----------
+    average : str, default None
+        Determines how the different multi-labels are averaged together. See
+        Scikit-learn documentation for more.
+    threshold : float, default=0.0
+        Determines at which value outputs from a network are thresholded for
+        binary outputs.
+
+    """
+
+    def __init__(self, average: str = None, threshold: float = 0.0):
         super().__init__()
         self.average = average
+        self.threshold = threshold
 
     def forward(self, labels: torch.tensor, outputs: torch.tensor) -> List[float]:
-        predictions = torch.where(outputs > 0, 1, 0)
+        predictions = torch.where(outputs > self.threshold, 1, 0)
         if self.average is None:
             return f1_score(labels, predictions, average=None)
         # Each label separately to get f1 for each label
@@ -59,6 +63,18 @@ class MultiLabelF1Score(nn.Module):
 
 
 class MultiClassF1Score(nn.Module):
+    """Multi class F1-Score
+
+    Computes the F1-Score for multi class outputs.
+
+    Parameters
+    ----------
+    average : str, default="macro"
+        F1-Score is computed for individual classes as binary and the results are
+        then aggregated together based on the average strategy. See scikit-learn
+        documentation for more.
+    """
+
     def __init__(self, average: str = "macro"):
         super().__init__()
         self.average = average
@@ -88,6 +104,35 @@ class MultiLabelAUC(nn.Module):
 
     def __call__(self, y, p):
         return robust_roc_auc(y, p, average=self.average)
+
+
+class MultiTaskLoss(nn.Module):
+    """Multi-task loss
+
+    Uses cross-entropy for different tasks and aggregates the results together"""
+
+    def __init__(self):
+        super().__init__()
+        self.criterion = nn.CrossEntropyLoss()
+
+    def forward(self, predictions: List[torch.tensor], labels: torch.tensor) -> float:
+        task_num = len(predictions)
+        losses = [self.criterion(predictions[i], labels[:, i]) for i in range(task_num)]
+        return sum(losses)
+
+
+class MultiTaskF1(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def forward(labels: torch.tensor, predictions: torch.tensor) -> List[float]:
+        task_num = predictions.shape[-1]
+        f1s = [
+            f1_score(labels[:, i], predictions[:, i], average="macro")
+            for i in range(task_num)
+        ]
+        return f1s
 
 
 class MultiMetric:
