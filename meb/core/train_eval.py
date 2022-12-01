@@ -93,7 +93,7 @@ class Config:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     epochs = 200
     criterion = utils.MultiLabelBCELoss
-    evaluation_fn = partial(utils.MultiLabelF1Score, average="macro")
+    evaluation_fn = partial(utils.MultiLabelF1Score, average="binary")
     # Optimizer
     optimizer = partial(optim.Adam, lr=1e-4, weight_decay=1e-3)
     scheduler = None
