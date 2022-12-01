@@ -244,7 +244,8 @@ def _try_object(obj):
         obj()
     except TypeError as e:
         raise ConfigException(
-            f"Check that the objects in config are not constructed yet. {e}"
+            "Check that the objects in config are not constructed yet"
+            f" for object {obj}. {e}"
         )
 
 
