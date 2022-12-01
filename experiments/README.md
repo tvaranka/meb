@@ -11,3 +11,6 @@ Results and code are shared in a jupyter notebook. The notebooks can be viewed d
 [minimal_example.py](minimal_example.py) is a python file with minimal use of MEB to showcase the protocol in use without the complexity of (also without the ease of use) of a library.
 
 [evaluate.py](evaluate.py) is a python script that accepts command line arguments for the use of MEB.
+
+## How to start with my own implementation?
+You can start by viewing related notebooks. Once you find one that closely resembles your implementation, you can copy the notebook and start modifying the code.
