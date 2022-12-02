@@ -11,19 +11,44 @@ from meb import core
 
 validator = core.MEGCValidator(core.Config)
 ```
+Different validation styles exists depending whether leave-one-subject-out, leave-one-dataset-out or action units is used.
 
 As parameter the *validator* takes an instance of the Config class. Typically it is created for each specific case, see [config](config.md).
 
-Next the data and data frame are passed to the validator. These are obtained from the dataset object, see (datasets)[datasets.md).
+Next the data and data frame are passed to the validator. These are obtained from the dataset object, see [datasets](datasets.md).
 
 ```python
 model_outputs = validator.validate(df, data)
+```
+The `model_outputs` contains outputs of the model which can be used for computing metrics. For convenience, results are also printed out. For example:
+```
+Dataset: casme, n=189 | train_mean: 0.9866 | test_mean: 0.2145
+Test per AU: [('AU1', 51.43), ('AU2', 71.43), ('AU4', 68.7), ('AU5', 0.0), ('AU6', 0.0), ('AU7', 0.0), ('AU9', 4.76), ('AU10', 0.0), ('AU12', 13.33), ('AU14', 18.75), ('AU15', 28.95), ('AU17', 0.0)]
+
+Dataset: casme2, n=256 | train_mean: 0.9992 | test_mean: 0.415
+Test per AU: [('AU1', 85.25), ('AU2', 70.37), ('AU4', 94.82), ('AU5', 0.0), ('AU6', 0.0), ('AU7', 56.14), ('AU9', 0.0), ('AU10', 11.76), ('AU12', 38.1), ('AU14', 54.84), ('AU15', 11.76), ('AU17', 75.0)]
+
+.
+.
+.
+Final results
+
+All AUs:  [('AU1', 69.94), ('AU2', 64.86), ('AU4', 82.52), ('AU5', 6.13), ('AU6', 5.41), ('AU7', 33.26), ('AU9', 6.41), ('AU10', 4.94), ('AU12', 25.29), ('AU14', 33.82), ('AU15', 19.2), ('AU17', 48.89)]
+Mean:  33.39
 ```
 
 You may also want to validate for $n$ times to avoid choice of seed to affect results.
 
 ```python
-model_outputs = validator.validate_n_times(df, data, n_times=5)
+validator.validate_n_times(df, data, n_times=5)
+```
+Outputs:
+```
+AUS: ['AU1', 'AU2', 'AU4', 'AU5', 'AU6', 'AU7', 'AU9', 'AU10', 'AU12', 'AU14', 'AU15', 'AU17', 'Average']
+68.7 & 65.2 & 83.8 & 8.3 & 6.4 & 39.6 & 11.0 & 6.8 & 31.0 & 29.6 & 8.8 & 39.6 & 33.2
+
+Datasets:  ['casme', 'casme2', 'samm', 'fourd', 'mmew', 'casme3a', 'Average']
+21.2 & 39.8 & 36.7 & 33.8 & 32.6 & 27.7 & 32.0
 ```
 
 #### Validator
