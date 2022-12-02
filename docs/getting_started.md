@@ -31,7 +31,7 @@ Due to private data (faces) appearing in micro-expression datasets they are only
 The datasets can be added to the framework by two ways. It is recommended to start by just adding the `excel_path` and `dataset_path` (or cropped or optical_flow) for a single dataset and testing whether it works with the instructions below. If the test passes, you can proceed with adding other datasets and sources.
 ##### 1. Modifying the path in `config/dataset_config.py`
 
-The `DatasetConfig` consists of all the paths to the datasets. Each dataset has four different paths: `excel_path`, `cropped_dataset_path`, `dataset_path` and `optical_flow` paths. (TODO: create scripts that create the cropped and optical flow datasets) The variable names in the `DatasetConfig` should not be changed, but the paths can be changed freely.
+The `DatasetConfig` consists of all the paths to the datasets. Each dataset has four different paths: `excel_path`, `cropped_dataset_path`, `dataset_path` and `optical_flow` paths. The variable names in the `DatasetConfig` should not be changed, but the paths can be changed freely.
 
 ```python
 class DatasetConfig:
