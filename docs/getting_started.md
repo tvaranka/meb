@@ -28,7 +28,7 @@ pip install -e .
 #### Adding datasets
 Due to private data (faces) appearing in micro-expression datasets they are only available after accepting the release agreement. See [Micro-expression datasets](micro_expression_datasets.md) for more information on where to obtain the datasets. 
 
-The datasets can be added to the framework by two ways. It is recommended to start by just adding the `excel_path` and `dataset_path` (or cropped or optical_flow) for a single dataset and testing whether it works with the instructions below. If the test passes, you can proceed with adding other datasets and sources.
+The datasets can be added to the framework by two ways. It is recommended to start by just adding the `excel_path` and `dataset_path` (or cropped or optical_flow) for a single dataset and testing whether it works with the instructions below. If the test passes, you can proceed with adding other datasets and sources. See [tools](../tools) on how to obtain optical flow and cropped datasets.
 ##### 1. Modifying the path in `config/dataset_config.py`
 
 The `DatasetConfig` consists of all the paths to the datasets. Each dataset has four different paths: `excel_path`, `cropped_dataset_path`, `dataset_path` and `optical_flow` paths. The variable names in the `DatasetConfig` should not be changed, but the paths can be changed freely.
