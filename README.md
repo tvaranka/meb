@@ -1,5 +1,5 @@
 # MEB
-![example workflow](https://github.com/tvaranka/Cross-dataset-micro-expression/workflows/Python%20application/badge.svg)
+![example workflow](https://github.com/tvaranka/meb/workflows/Python%20application/badge.svg)
 [![contributions elcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/tvaranka/Cross-dataset-micro-expression/issues)
 
 MEB aims to simplify, standardize and streamline the process of micro-expression analysis. It provides tools for data loading and training micro-expression models.
