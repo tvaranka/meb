@@ -53,7 +53,7 @@ ln -sfn "my_path/micro_expressions/SMIC/Preprocessed data/SMIC_all_cropped/HS" "
 ln -sfn "my_path/micro_expressions/SMIC/Original data/HS" "data/SMIC/HS"
 ln -sfn "my_path/micro_expressions/SMIC/Preprocessed data/smic_uv_frames_secrets_of_OF.npy" "data/SMIC/smic_uv_frames_secrets_of_OF.npy"
 ```
-See `create_sym_links.sh` for the whole script.
+See `tools/create_sym_links.sh` for the whole script.
 
 #### Test whether the data addition was succesfull
 To test if the data addition was succesfull run the `tools/dataset_setup_test.py`. As arguments the scripts takes `--dataset_name` from the following list [Smic/Casme/Casme2/Samm/Mmew/Fourd/Casme3A/Casme3C/Megc/CrossDataset] (note the capitalization) and `--data_type` from the list [original/cropped/optical_flow].
