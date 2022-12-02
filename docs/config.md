@@ -43,7 +43,7 @@ class Config:
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     epochs = 200
     criterion = utils.MultiLabelBCELoss
-    evaluation_fn = partial(utils.MultiLabelF1Score, average="macro")
+    evaluation_fn = partial(utils.MultiLabelF1Score, average="binary")
     # Optimizer
     optimizer = partial(optim.Adam, lr=1e-4, weight_decay=1e-3)
     scheduler = None
@@ -56,7 +56,7 @@ class Config:
     model = None
 ```
 #### Practical use
-Let's create a `Config` using Resnet18 for action unit detection on SAMM. We define the `action_units` to be used. The number of `epochs` is overwritten to 50 and `batch_size` to 64. A transform is added and the model is added a partial, with the `pretrained` and `num_classes` parameters
+Let's create a `Config` using Resnet18 for action unit detection on SAMM. We define the `action_units` to be used. The number of `epochs` is overwritten to 50 and `batch_size` to 64. A transform is added and the model is added as a partial, with the `pretrained` and `num_classes` parameters
 
 ```python
 class ResNetConfig(core.Config):
