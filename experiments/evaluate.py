@@ -73,6 +73,7 @@ group.add_argument(
     default="MultiLabelBCELoss",
     help="Loss function used in training: see meb/utils",
 )
+group.add_argument("--n_times", default=5, help="Number of times validatio is done.")
 
 
 args = parser.parse_args()
@@ -106,7 +107,7 @@ def main():
         cropped=args.cropped,
     )
     validator = getattr(core, args.protocol + "Validator")(Config)
-    validator.validate_n_times(c.data_frame, c.data)
+    validator.validate_n_times(c.data_frame, c.data, n_times=args.n_times)
 
 
 if __name__ == "__main__":
