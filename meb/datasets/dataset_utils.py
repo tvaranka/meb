@@ -71,6 +71,7 @@ class LazyDataLoader:
         resize=None,
         n_sample: int = None,
         magnify: bool = False,
+        h5_file=None,
         **kwargs,
     ) -> None:
         self.data_path = data_path
@@ -81,6 +82,10 @@ class LazyDataLoader:
             "magnify_params", {"alpha": 10, "r1": 0.4, "r2": 0.05}
         )
         self.n_sample = n_sample
+        if h5_file:
+            self.img_reader = H5Reader(h5_file).imread
+        else:
+            self.img_reader = plt.imread
 
     def __len__(self) -> int:
         return len(self.data_path)
@@ -338,6 +343,7 @@ class Dataset(ABC, DatasetConfig):
         preload: bool = False,
         ignore_validation: bool = False,
         magnify_params: dict = {},
+        **kwargs,
     ) -> None:
         self.color = color
         self.resize = resize
@@ -493,6 +499,16 @@ class Dataset(ABC, DatasetConfig):
         if self.resize:
             of_frames = sk_resize(of_frames, (n_samples, c, h, w), anti_aliasing=True)
         return of_frames
+
+
+class H5Reader:
+    """Reads data from h5 file"""
+
+    def __init__(self, h5_file):
+        self.h5_file = h5_file
+
+    def read_image(self, image_path: str):
+        return np.array(self.h5_file[image_path])
 
 
 def _only_digit(s: str) -> str:
