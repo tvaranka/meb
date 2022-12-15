@@ -236,6 +236,26 @@ class ConfigException(Exception):
     """Error in config type"""
 
 
+class NullScaler:
+    """NullScaler that does nothing
+
+    If LossScaler is not used in conjunction with amp autocast
+    it is replaced by NullScaler to resume normal training.
+    """
+
+    @staticmethod
+    def scale(loss):
+        return loss
+
+    @staticmethod
+    def step(optimizer):
+        optimizer.step()
+
+    @staticmethod
+    def update():
+        pass
+
+
 def _try_object(obj):
     """Tests if an object is callable. If not, raise a ConfigException."""
     if obj is None:

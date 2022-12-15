@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from contextlib import nullcontext
 from datetime import datetime
 from functools import partial
 from typing import List, Sequence, Tuple, Union
@@ -12,6 +13,7 @@ from tqdm import tqdm
 
 from meb import utils
 from meb.datasets.dataset_utils import InputData
+from meb.utils.utils import NullScaler
 
 
 class Config:
@@ -104,6 +106,8 @@ class Config:
     mixup_fn = None
     num_workers = 2
     model = None
+    channels_last = torch.contiguous_format
+    loss_scaler = None
 
 
 class Validator(ABC):
@@ -131,6 +135,10 @@ class Validator(ABC):
         self.evaluation_fn = utils.MultiMetric(self.cf.evaluation_fn)
 
         self.printer = utils.Printer(self.cf, split_column=self.split_column)
+
+        self.amp_autocast = nullcontext
+        if self.cf.loss_scaler:
+            self.amp_autocast = torch.cuda.amp.autocast
 
         # Validate config
         utils.validate_config(self.cf)
@@ -245,14 +253,17 @@ class Validator(ABC):
         """
         num_updates = epoch * len(dataloader)
         for i, (X, y) in enumerate(dataloader):
-            X, y = X.to(self.cf.device), y.to(self.cf.device)
+            X = X.to(self.cf.device, memory_format=self.cf.channels_last)
+            y = y.to(self.cf.device)
             self.optimizer.zero_grad()
             if self.mixup_fn:
                 X, y = self.mixup_fn(X.float(), y.float())
-            outputs = self.model(X.float())
-            loss = self.criterion(outputs, y)
-            loss.backward()
-            self.optimizer.step()
+            with self.amp_autocast():
+                outputs = self.model(X.float())
+                loss = self.criterion(outputs, y)
+            self.loss_scaler.scale(loss).backward()
+            self.loss_scaler.step(self.optimizer)
+            self.loss_scaler.update()
             num_updates += 1
             if self.scheduler:
                 self.scheduler.step_update(num_updates=num_updates)
@@ -273,12 +284,15 @@ class Validator(ABC):
         """
         self.model = self.cf.model()
         self.criterion = self.cf.criterion()
-        self.model.to(self.cf.device)
+        self.model.to(self.cf.device, memory_format=self.cf.channels_last)
         self.optimizer = self.cf.optimizer(self.model.parameters())
         self.scheduler = (
             self.cf.scheduler(self.optimizer) if self.cf.scheduler else None
         )
         self.mixup_fn = self.cf.mixup_fn() if self.cf.mixup_fn else None
+        self.loss_scaler = (
+            self.cf.loss_scaler() if self.cf.loss_scaler else NullScaler()
+        )
 
     def validate_split(
         self,
