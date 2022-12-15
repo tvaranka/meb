@@ -1,11 +1,14 @@
+from contextlib import nullcontext
 from functools import partial
 
 import pytest
+import torch
+import torch.cuda.amp
 import torch.nn as nn
 
 from meb import models, utils
 from meb.core import Config, CrossDatasetValidator
-from meb.utils.utils import ConfigException, validate_config
+from meb.utils.utils import ConfigException, NullScaler, validate_config
 
 from ..test_data.base import BaseTestDataset
 
@@ -46,6 +49,19 @@ def test_validators():
     cf.model = partial(models.SSSNet, num_classes=9)
     v = CrossDatasetValidator(cf)
     assert v.split_column == "dataset"
+
+
+def test_amp_autocast():
+    cf = _copy_class_object(Config)
+    cf.device = torch.device("cpu")
+    cf.model = models.SSSNet
+    v = CrossDatasetValidator(cf)
+    assert v.amp_autocast == nullcontext
+    v.setup_training()
+    assert isinstance(v.loss_scaler, NullScaler)
+    cf.loss_scaler = torch.cuda.amp.GradScaler
+    v = CrossDatasetValidator(cf)
+    assert v.amp_autocast == torch.cuda.amp.autocast
 
 
 class TestValidator(BaseTestDataset):
