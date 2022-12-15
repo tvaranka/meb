@@ -75,6 +75,12 @@ class Config:
     model : torch.nn.module, default=None
         A torch model used for training and evaluation. Only the class or partial
         should be given, not an instance of it. The object needs to be callable.
+    channels_last : torch.memory_format, default=torch.contiguous_format
+        Can be used to improve speed. Use torch.channels_last or torch.channels_last_3d
+        for improved performance.
+    loss_scaler : LossScaler, default=None
+        When a scaler is provided AMP (automated mixed precision) is applied. Use
+        for example torch.cuda.amp.GradScaler
 
     Examples
     --------
