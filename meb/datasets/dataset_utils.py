@@ -179,7 +179,7 @@ class LazyDataLoader:
         video = self._create_array(image_paths)
 
         for f, image_path in enumerate(image_paths):
-            image = plt.imread(image_path)
+            image = self.img_reader(image_path)
             if not self.color:
                 # Check if image is already grayscale (SAMM)
                 if len(image.shape) == 3:
@@ -353,6 +353,7 @@ class Dataset(ABC, DatasetConfig):
         self.magnify_params = magnify_params
         self.n_sample = n_sample
         self.preload = preload
+        self.kwargs = kwargs
         if not self.optical_flow and self.dataset_name and not ignore_validation:
             validate_dataset(self.data_frame, self.data)
 
@@ -392,6 +393,7 @@ class Dataset(ABC, DatasetConfig):
             n_sample=self.n_sample,
             magnify=self.magnify,
             magnify_params=self.magnify_params,
+            **self.kwargs,
         )
 
         if self.preload:
@@ -507,8 +509,12 @@ class H5Reader:
     def __init__(self, h5_file):
         self.h5_file = h5_file
 
-    def read_image(self, image_path: str):
-        return np.array(self.h5_file[image_path])
+    def imread(self, image_path: str):
+        return np.array(self.h5_file[self._path_of_file(image_path)])[0]
+
+    @staticmethod
+    def _path_of_file(path: str):
+        return "/".join(path.split("/")[:-1])
 
 
 def _only_digit(s: str) -> str:
