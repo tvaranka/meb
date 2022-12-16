@@ -692,9 +692,10 @@ class CrossDataset(dataset_utils.Dataset):
 
 
 class Megc(dataset_utils.Dataset):
-    """CASME3 Dataset
+    """MEGC dataset
 
-    Combines part A and C together.
+    Combines SMIC, CASME2 and SAMM together. Only keeps samples with positive,
+    negative and surprise emotions. Other emotion categories are discarded.
 
     Reference
     ---------
