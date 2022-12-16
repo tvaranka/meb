@@ -469,7 +469,7 @@ class Casme3A(dataset_utils.Dataset):
             axis=1,
         )
         df = self._separate_duplicate_materials(df)
-        df.loc[128, "apex"] = 160
+        df.loc[128, "apex"] = 123
         df.loc[749, "onset"] = 2647
         df.loc[[708, 796, 798], "offset"] = [34, 1845, 2403]
         df.loc[750, ["onset", "apex"]] = 1
