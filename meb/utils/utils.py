@@ -1,4 +1,5 @@
 import random
+import warnings
 from functools import partial
 from typing import List, Sequence, Tuple
 
@@ -256,7 +257,11 @@ class NullScaler:
         pass
 
 
-def _try_object(obj):
+def _get_attributes_of_class(cls):
+    return [attribute for attribute in dir(cls) if attribute[:2] != "__"]
+
+
+def _try_if_object_callable(obj):
     """Tests if an object is callable. If not, raise a ConfigException."""
     if obj is None:
         return
@@ -269,19 +274,34 @@ def _try_object(obj):
         )
 
 
-def validate_config(config):
+def _difference_to_default_config(config, default_config):
+    default_attributes = set(_get_attributes_of_class(default_config))
+    attributes = set(_get_attributes_of_class(config))
+    difference = attributes - default_attributes
+    return difference
+
+
+def validate_config(config, default_config):
     """Validates whether the given objects are in the correct form."""
     object_names = ["criterion", "evaluation_fn", "mixup_fn", "model"]
     for object_name in object_names:
         if isinstance(getattr(config, object_name), list):
             for obj in getattr(config, object_name):
-                _try_object(obj)
+                _try_if_object_callable(obj)
         else:
-            _try_object(getattr(config, object_name))
+            _try_if_object_callable(getattr(config, object_name))
     # Validate optimizer seperately
     if "param_groups" in config.optimizer.__dict__:
         raise ConfigException(
             "Check that the optimizer in config is not constructed yet."
+        )
+    config_difference = _difference_to_default_config(config, default_config)
+    if config_difference:
+        warnings.warn(
+            UserWarning(
+                f"Additional attribute(s) found: {config_difference}."
+                "See if there are typos."
+            )
         )
 
 

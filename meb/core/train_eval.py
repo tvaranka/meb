@@ -147,7 +147,7 @@ class Validator(ABC):
             self.amp_autocast = torch.cuda.amp.autocast
 
         # Validate config
-        utils.validate_config(self.cf)
+        utils.validate_config(self.cf, Config)
 
     @abstractmethod
     def validate(self, df: pd.DataFrame, input_data: InputData, seed_n: int = 1):
