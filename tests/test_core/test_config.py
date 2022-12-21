@@ -22,7 +22,7 @@ def test_correct_config():
     cf = _copy_class_object(Config)
     cf.model = partial(models.SSSNet, num_classes=9)
     try:
-        validate_config(cf)
+        validate_config(cf, Config)
     except ConfigException:
         pytest.fail("An exception was raised when it should not have been.")
 
@@ -31,17 +31,22 @@ def test_incorrect_config():
     cf = _copy_class_object(Config)
     cf.evaluation_fn = utils.MultiLabelF1Score()
     with pytest.raises(ConfigException):
-        validate_config(cf)
+        validate_config(cf, Config)
 
     cf = _copy_class_object(Config)
     cf.criterion = nn.CrossEntropyLoss()
     with pytest.raises(ConfigException):
-        validate_config(cf)
+        validate_config(cf, Config)
 
     cf = _copy_class_object(Config)
     cf.model = models.SSSNet(num_classes=9)
     with pytest.raises(ConfigException):
-        validate_config(cf)
+        validate_config(cf, Config)
+
+    cf = _copy_class_object(Config)
+    cf.custom_feature = 3
+    with pytest.warns(UserWarning):
+        validate_config(cf, Config)
 
 
 def test_validators():
