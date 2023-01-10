@@ -257,13 +257,18 @@ class Validator(ABC):
         Given the epoch number, trains the model for a single epoch. This function
         can be overwritten to create custom training loops.
         """
+        # Track number of updates for scheduler
         num_updates = epoch * len(dataloader)
         for i, (X, y) in enumerate(dataloader):
+            # Use channels_last memory format to speed up training
             X = X.to(self.cf.device, memory_format=self.cf.channels_last)
             y = y.to(self.cf.device)
             self.optimizer.zero_grad()
+            # Use mixup (i.e., MixVideo) if set in config
             if self.mixup_fn:
                 X, y = self.mixup_fn(X.float(), y.float())
+            # Use mixed precision training for faster training if set in config
+            # If not set in config uses null functions for amp and loss scaling
             with self.amp_autocast():
                 outputs = self.model(X.float())
                 loss = self.criterion(outputs, y)
