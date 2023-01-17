@@ -1,4 +1,4 @@
-from typing import List
+from typing import Iterable, List, Optional
 
 import numpy as np
 import torch
@@ -19,11 +19,11 @@ class MultiLabelBCELoss(nn.Module):
 
     """
 
-    def __init__(self, weight: torch.tensor = None, **kwargs):
+    def __init__(self, weight: Optional[torch.Tensor] = None, **kwargs):
         super().__init__()
         self.loss = nn.BCEWithLogitsLoss(weight=weight, **kwargs)
 
-    def forward(self, outputs: torch.tensor, labels: torch.tensor) -> float:
+    def forward(self, outputs: torch.Tensor, labels: torch.Tensor) -> float:
         loss = self.loss(outputs, labels.float())
         return loss
 
@@ -45,12 +45,12 @@ class MultiLabelF1Score(nn.Module):
 
     """
 
-    def __init__(self, average: str = None, threshold: float = 0.0):
+    def __init__(self, average: Optional[str] = None, threshold: float = 0.0):
         super().__init__()
         self.average = average
         self.threshold = threshold
 
-    def forward(self, labels: torch.tensor, outputs: torch.tensor) -> List[float]:
+    def forward(self, labels: torch.Tensor, outputs: torch.Tensor) -> List[float]:
         predictions = torch.where(outputs > self.threshold, 1, 0)
         if self.average is None:
             return f1_score(labels, predictions, average=None)
@@ -115,7 +115,7 @@ class MultiTaskLoss(nn.Module):
         super().__init__()
         self.criterion = nn.CrossEntropyLoss()
 
-    def forward(self, predictions: List[torch.tensor], labels: torch.tensor) -> float:
+    def forward(self, predictions: List[torch.Tensor], labels: torch.Tensor) -> float:
         task_num = len(predictions)
         losses = [self.criterion(predictions[i], labels[:, i]) for i in range(task_num)]
         return sum(losses)
@@ -126,7 +126,7 @@ class MultiTaskF1(nn.Module):
         super().__init__()
 
     @staticmethod
-    def forward(labels: torch.tensor, predictions: torch.tensor) -> List[float]:
+    def forward(labels: torch.Tensor, predictions: torch.Tensor) -> List[float]:
         task_num = predictions.shape[-1]
         f1s = [
             f1_score(labels[:, i], predictions[:, i], average="macro")
@@ -138,8 +138,8 @@ class MultiTaskF1(nn.Module):
 class MultiMetric:
     """Allows the use of multiple different metrics at the same time"""
 
-    def __init__(self, metric_objects):
+    def __init__(self, metric_objects: Iterable[nn.Module]):
         self.metrics = [metric() for metric in metric_objects]
 
-    def __call__(self, y: torch.tensor, p: torch.tensor):
+    def __call__(self, y: torch.Tensor, p: torch.Tensor) -> List[float]:
         return [metric(y, p) for metric in self.metrics]
