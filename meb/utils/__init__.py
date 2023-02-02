@@ -11,6 +11,7 @@ from .mixup import CutMix, MixUp, MixVideo
 from .utils import (
     MEData,
     Printer,
+    ReprMeta,
     dataset_aus,
     reset_weights,
     set_random_seeds,
@@ -34,4 +35,5 @@ __all__ = [
     "MultiLabelAUC",
     "MultiLabelF1Score",
     "MultiTaskF1",
+    "ReprMeta",
 ]

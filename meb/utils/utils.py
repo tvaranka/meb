@@ -281,6 +281,23 @@ def _difference_to_default_config(config, default_config):
     return difference
 
 
+class ReprMeta(type):
+    """Defines __repr__ for class names
+
+    ReprMeta can be used as a metaclass for classes that are used without creating
+    an instance of the class. The ReprMeta then provides a __repr__ function for such
+    objects, in which the class variables and their corresponding values are returned.
+    """
+
+    def __repr__(cls):
+        # Query class variables
+        variables = [key for key in cls.__dict__ if not key.startswith("__")]
+        # Print a dict with class variable and its value
+        return str(
+            {variable_name: getattr(cls, variable_name) for variable_name in variables}
+        )
+
+
 def validate_config(config, default_config):
     """Validates whether the given objects are in the correct form."""
     object_names = ["criterion", "evaluation_fn", "mixup_fn", "model"]

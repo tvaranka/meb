@@ -16,7 +16,7 @@ from meb.datasets.dataset_utils import InputData
 from meb.utils.utils import NullScaler
 
 
-class Config:
+class Config(metaclass=utils.ReprMeta):
     """Stores configuration settings.
 
     The class is used to store configuration settings for running experiments.
@@ -81,6 +81,10 @@ class Config:
     loss_scaler : LossScaler, default=None
         When a scaler is provided AMP (automated mixed precision) is applied. Use
         for example torch.cuda.amp.GradScaler
+
+    Notes
+        ReprMeta is used to provide a __repr__ method for non-instantiated object.
+        The __repr__ provides a dict with class variables and their values.
 
     Examples
     --------
