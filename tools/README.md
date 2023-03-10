@@ -5,6 +5,11 @@
 tools/create_sym_links.sh
 ```
 
+[crop_and_align.py](crop_and_align.py) crops and aligns a given dataset. It uses [RetinaFace](https://github.com/serengil/retinaface).
+```sh
+python tools/crop_and_align.py --dataset_name Casme --save_location="data/CASME/Cropped"
+```
+
 [dataset_setup_test.py](dataset_setup_test.py) provides a way to test whether your datasets have been correctly setup. The script works with command line arguments.
 ```sh
 python tools/dataset_setup_test.py --dataset_name Casme --data_type original
