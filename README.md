@@ -4,6 +4,8 @@
 
 MEB aims to simplify, standardize and streamline the process of micro-expression analysis. It provides tools for data loading and training micro-expression models.
 
+[ArXiv] [Data Leakage and Evaluation Issues in Micro-Expression Analysis](https://arxiv.org/abs/2211.11425)
+
 ## Getting started
 
 The following example shows how to run a pretrained ResNet18 on the cross dataset protocol using optical flow as input.
@@ -26,6 +28,7 @@ validator = core.CrossDatasetValidator(ResNetConfig)
 # Train and test with the cross-dataset protocol
 validator.validate(cross_dataset.data_frame, cross_dataset.data)
 ```
+[Experiments](experiments) for jupyter notebook demos of using the library.
 
 See [Getting started](docs/getting_started.md) for installing and adding datasets. See [Config](docs/config.md), [Datasets](docs/datasets.md) and [Validation](docs/validation.md) for understanding the pipeline.
 
