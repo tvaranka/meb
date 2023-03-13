@@ -109,6 +109,9 @@ class LazyDataLoader:
             data_path = self.data_path[index]
             video = self._get_video(data_path)
             if self.magnify:
+                assert "alpha" in self.magnify_params
+                assert "r1" in self.magnify_params
+                assert "r2" in self.magnify_params
                 return py_evm.magnify(video, **self.magnify_params)
             return video
         elif isinstance(index, Sequence):
