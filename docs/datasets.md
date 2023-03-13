@@ -86,7 +86,7 @@ cross_dataset = datasets.CrossDataset(resize=112, color=True, preload=True)
 # Casme2 Gray magnified and not cropped or resized
 casme2 = datasets.Casme2(
     magnify=True,
-    magnify_params={"a": 10, "r_1": 0.5, "r_2": 0.2"}
+    magnify_params={"alpha": 10, "r1": 0.5, "r2": 0.2"}
 )
 ```
 
