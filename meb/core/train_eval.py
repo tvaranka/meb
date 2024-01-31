@@ -100,6 +100,7 @@ class Config(metaclass=utils.ReprMeta):
     """
 
     action_units = utils.dataset_aus["cross"]
+    # action_units = None
     print_loss_interval = None
     validation_interval = None
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -480,9 +481,16 @@ class IndividualDatasetAUValidator(Validator):
     ) -> List[torch.tensor]:
         utils.set_random_seeds(seed_n)
         subject_names = df["subject"].unique()
-        labels = np.concatenate(
-            [np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1
-        )
+        if self.cf.action_units == None:
+            df['emotion_numeric'], emotion_labels = pd.factorize(df['emotion']) # assign a unique numeric to each string labels
+            labels = np.vstack(df['emotion_numeric'].values).flatten()
+        else:
+            labels = np.concatenate(
+                [np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1
+            )
+
+
+
         outputs_list = []
         for subject_name in subject_names:
             train_metrics, test_metrics, outputs_test = self.validate_split(
@@ -545,4 +553,72 @@ class MEGCValidator(Validator):
                     f1_total, f1_smic, f1_casme2, f1_samm
                 )
             )
+        return outputs_list
+
+
+
+class IndividualDatasetEmotionValidator(Validator):
+    """Validator for single dataset Emotion"""
+
+    __doc__ += Validator.__doc__
+
+    def __init__(self, config: Config, verbose: bool = True):
+        super().__init__(config, split_column="subject")
+        self.verbose = verbose
+        self.disable_tqdm = False
+
+    def validate_n_times(
+        self, df: pd.DataFrame, input_data: InputData, n_times: int = 5
+    ) -> None:
+        self.verbose = False
+        emotion_results = []
+        subject_results = []
+        for n in tqdm(range(n_times)):
+            outputs_list = self.validate(df, input_data, seed_n=n + 45)
+            emotion_result, subject_result = self.printer.results_to_list(outputs_list, df)
+            emotion_results.append(emotion_result)
+            subject_results.append(subject_result)
+
+        aus = [i for i in self.cf.action_units]
+        subject_names = df[self.split_column].unique().tolist()
+        aus.append("Average")
+        subject_names.append("Average")
+        emotion_results = np.array(emotion_results)
+        subject_results = np.array(subject_results)
+        for i in range(len(self.cf.evaluation_fn)):
+            if len(self.cf.evaluation_fn) > 1:
+                print(self.printer.metric_name(self.cf.evaluation_fn[i]))
+            emotion_result = self.printer.list_to_latex(list(emotion_results[:, i].mean(axis=0)))
+            subject_result = self.printer.list_to_latex(
+                list(subject_results[:, i].mean(axis=0))
+            )
+            print("AUS:", aus)
+            print(emotion_result)
+            print("\nSubjects: ", subject_names)
+            print(subject_result)
+
+    def validate(
+        self, df: pd.DataFrame, input_data: InputData, seed_n: int = 1
+    ) -> List[torch.tensor]:
+        utils.set_random_seeds(seed_n)
+        subject_names = df["subject"].unique()
+        df['emotion_numeric'], emotion_labels = pd.factorize(df['emotion']) # assign a unique numeric to each string labels
+        labels = np.vstack(df['emotion_numeric'].values).flatten()
+
+        outputs_list = []
+        for subject_name in subject_names:
+            train_metrics, test_metrics, outputs_test = self.validate_split(
+                df, input_data, labels, subject_name
+            )
+            outputs_list.append(outputs_test)
+            if self.verbose:
+                self.printer.print_train_test_evaluation(
+                    train_metrics, test_metrics, subject_name, outputs_test.shape[0]
+                )
+
+        # Calculate total f1-scores
+        predictions = torch.cat(outputs_list)
+        metrics = self.evaluation_fn(labels, predictions)
+        if self.verbose:
+            self.printer.print_test_validation(metrics)
         return outputs_list
