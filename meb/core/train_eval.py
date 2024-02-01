@@ -100,7 +100,6 @@ class Config(metaclass=utils.ReprMeta):
     """
 
     action_units = utils.dataset_aus["cross"]
-    # action_units = None
     print_loss_interval = None
     validation_interval = None
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -622,3 +621,6 @@ class IndividualDatasetEmotionValidator(Validator):
         if self.verbose:
             self.printer.print_test_validation(metrics)
         return outputs_list
+    
+
+    
