@@ -81,6 +81,8 @@ class Config(metaclass=utils.ReprMeta):
     loss_scaler : LossScaler, default=None
         When a scaler is provided AMP (automated mixed precision) is applied. Use
         for example torch.cuda.amp.GradScaler
+    weights_name: str, default=None
+        Act as a flag + weights name (weights name should be inclusive of path). if it is none, then weights won't be saved.
 
     Notes
         ReprMeta is used to provide a __repr__ method for non-instantiated object.
@@ -118,6 +120,7 @@ class Config(metaclass=utils.ReprMeta):
     model = None
     channels_last = torch.contiguous_format
     loss_scaler = None
+    weights_name = None
 
 
 class Validator(ABC):
@@ -234,6 +237,7 @@ class Validator(ABC):
         self,
         train_loader: torch.utils.data.DataLoader,
         test_loader: torch.utils.data.DataLoader,
+        split_name: str
     ) -> None:
         """Main training loop
 
@@ -254,6 +258,10 @@ class Validator(ABC):
                     self.printer.print_train_test_validation(
                         train_metrics, test_metrics, epoch
                     )
+            if self.cf.weights_name:
+                torch.save(self.model.state_dict(), self.cf.weights_name + '_' + split_name + '.pth')
+
+
 
     def train_one_epoch(self, epoch: int, dataloader: torch.utils.data.DataLoader):
         """Train model for single epoch
@@ -320,7 +328,7 @@ class Validator(ABC):
 
         Splits data according to the split and starts the evaluation process.
         """
-
+        
         # Load data
         train_data, train_labels, test_data, test_labels = self.split_data(
             df[self.split_column], input_data, labels, split_name
@@ -332,7 +340,7 @@ class Validator(ABC):
         self.setup_training()
 
         # Train and evaluation
-        self.train_model(train_loader, test_loader)
+        self.train_model(train_loader, test_loader, split_name)
         train_metrics = self.evaluate_model(train_loader)
         test_metrics, outputs_test = self.evaluate_model(test_loader, test=True)
         return train_metrics, test_metrics, outputs_test

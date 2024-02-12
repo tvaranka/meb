@@ -121,7 +121,7 @@ class Printer:
         for i, metric in enumerate(metrics):
             if len(metrics) > 1:
                 print(self.metric_name(self.cf.evaluation_fn[i]))
-            if self.cf.action_units == 'emotion':
+            if 'emotion' in self.cf.action_units:
                 metric = [metric]
                 print(
                     "All AUs: ",
@@ -355,4 +355,8 @@ dataset_aus = {
         "AU17",
     ],
     "emotion": ["emotion"]
+}
+
+dataset_emotion = {
+    "casme2": ['disgust', 'happiness', 'repression', 'surprise', 'others']
 }
