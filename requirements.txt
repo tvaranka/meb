@@ -1,4 +1,4 @@
-torchvision
+torchvision==0.16.2 #temporary fix this because pytorchvideo has incompatible function(transforms) with torchvision 0.17.0 
 scikit-learn
 torch
 opencv-python

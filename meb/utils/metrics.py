@@ -26,6 +26,28 @@ class MultiLabelBCELoss(nn.Module):
     def forward(self, outputs: torch.Tensor, labels: torch.Tensor) -> float:
         loss = self.loss(outputs, labels.float())
         return loss
+    
+class MultiClassCELoss(nn.Module):
+    """Multi-class cross entropy loss wrapper
+
+    Uses cross-entropy with logits to compute loss for
+    multi-label cases.
+
+    Parameters
+    ----------
+    weight : torch.tensor, optional
+        Weights classes using the provided weight. See torch documentation.
+
+    """
+
+    def __init__(self, weight: Optional[torch.Tensor] = None, **kwargs):
+        super().__init__()
+        self.loss = nn.CrossEntropyLoss(weight=weight, **kwargs)
+
+    def forward(self, outputs: torch.Tensor, labels: torch.Tensor) -> float:
+        loss = self.loss(outputs, labels)
+        return loss
+
 
 
 class MultiLabelF1Score(nn.Module):

@@ -2,6 +2,7 @@ from .train_eval import (
     Config,
     CrossDatasetValidator,
     IndividualDatasetAUValidator,
+    IndividualDatasetEmotionValidator,
     MEGCValidator,
     Validator,
 )
@@ -11,5 +12,6 @@ __all__ = [
     "Validator",
     "CrossDatasetValidator",
     "IndividualDatasetAUValidator",
+    "IndividualDatasetEmotionValidator",
     "MEGCValidator",
 ]
