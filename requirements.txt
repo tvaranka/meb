@@ -10,7 +10,7 @@ timm
 tqdm
 openpyxl
 notebook
-pytorchvideo
+pytorchvideo==0.16.2
 
 py_evm @ git+https://github.com/tvaranka/Python-evm#egg=py_evm
 get_image_size @ git+https://github.com/scardine/image_size#egg=get_image_size
