@@ -35,7 +35,7 @@ class BaseTemporalSubSample(ABC):
         assert isinstance(x, np.ndarray) or isinstance(
             x, torch.Tensor
         ), "Only accepts numpy or torch arrays"
-        assert len(x.shape) <= abs(self.temporal_dim)
+        assert len(x.shape) > abs(self.temporal_dim) # to ensure x(input) dimension is always bigger than the temporal dimension that we want to retrieve from, else will result in out-of-index problem in t = x.shape[self.temporal_dim]
         t = x.shape[self.temporal_dim]
         assert (
             self.num_samples > 0
