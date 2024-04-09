@@ -3,6 +3,7 @@ from contextlib import nullcontext
 from datetime import datetime
 from functools import partial
 from typing import List, Sequence, Tuple, Union
+import os
 
 import numpy as np
 import pandas as pd
@@ -259,7 +260,16 @@ class Validator(ABC):
                         train_metrics, test_metrics, epoch
                     )
             if self.cf.weights_name:
-                torch.save(self.model.state_dict(), self.cf.weights_name + '_' + split_name + '.pth')
+                # Get the current time
+                current_time = datetime.now()
+                # Format the time as a string
+                time_string = current_time.strftime('%H:%M:%S')   
+
+                folder_name = self.cf.weights_name
+                weights_name = self.cf.weights_name + '_' + split_name  + '_' + time_string + '.pth'
+                if os.path.exists(folder_name) == False:
+                    os.makedirs(folder_name)    
+                torch.save(self.model.state_dict(), weights_name)
 
 
 

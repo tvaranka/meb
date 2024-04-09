@@ -101,9 +101,10 @@ class Printer:
     def __init__(self, config, split_column: str):
         self.cf = config
         self.split_column = split_column
-        if 'AU' in self.cf.action_units[0]:
+
+        if isinstance(self.cf.action_units, list) and 'AU' in self.cf.action_units[0]:
             self.label_type = "au"
-        elif 'emotion' in self.cf.action_units[0]:
+        elif isinstance(self.cf.action_units, list) and 'emotion' in self.cf.action_units[0]:
             self.label_type = 'emotion'
         else:
             self.label_type = "emotion"
@@ -121,7 +122,7 @@ class Printer:
         for i, metric in enumerate(metrics):
             if len(metrics) > 1:
                 print(self.metric_name(self.cf.evaluation_fn[i]))
-            if 'emotion' in self.cf.action_units:
+            if isinstance(self.cf.action_units, list) and 'emotion' in self.cf.action_units:
                 metric = [metric]
                 print(
                     "All AUs: ",
