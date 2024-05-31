@@ -39,7 +39,7 @@ def test_incorrect_shape(sampling_class_type, array_type):
     num_samples = 8
     sampler = sampling_class_type(num_samples)
     x = array_type((8, 16, 16))
-    with pytest.raises(IndexError):
+    with pytest.raises(AssertionError):
         sampler(x)
 
     x = array_type((3, 16, 16, 8))
