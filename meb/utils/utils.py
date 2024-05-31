@@ -101,8 +101,11 @@ class Printer:
     def __init__(self, config, split_column: str):
         self.cf = config
         self.split_column = split_column
-        if self.cf.action_units:
+
+        if isinstance(self.cf.action_units, list) and 'AU' in self.cf.action_units[0]:
             self.label_type = "au"
+        elif isinstance(self.cf.action_units, list) and 'emotion' in self.cf.action_units[0]:
+            self.label_type = 'emotion'
         else:
             self.label_type = "emotion"
 
@@ -119,10 +122,18 @@ class Printer:
         for i, metric in enumerate(metrics):
             if len(metrics) > 1:
                 print(self.metric_name(self.cf.evaluation_fn[i]))
-            print(
-                "All AUs: ",
-                list(zip(self.cf.action_units, np.around(np.array(metric) * 100, 2))),
-            )
+            if isinstance(self.cf.action_units, list) and 'emotion' in self.cf.action_units:
+                metric = [metric]
+                print(
+                    "All AUs: ",
+                    list(zip(self.cf.action_units, np.around(np.array(metric) * 100, 2))),
+                )
+            elif self.cf.action_units != None: # to exclude cases where emotion class is used.
+                print(
+                    "All AUs: ",
+                    list(zip(self.cf.action_units, np.around(np.array(metric) * 100, 2))),
+                )
+            
             print("Mean: ", np.around(np.mean(metric) * 100, 2))
             print("\n")
 
@@ -344,4 +355,9 @@ dataset_aus = {
         "AU15",
         "AU17",
     ],
+    "emotion": ["emotion"]
+}
+
+dataset_emotion = {
+    "casme2": ['disgust', 'happiness', 'repression', 'surprise', 'others']
 }

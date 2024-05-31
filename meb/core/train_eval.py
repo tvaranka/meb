@@ -3,6 +3,7 @@ from contextlib import nullcontext
 from datetime import datetime
 from functools import partial
 from typing import List, Sequence, Tuple, Union
+import os
 
 import numpy as np
 import pandas as pd
@@ -81,6 +82,8 @@ class Config(metaclass=utils.ReprMeta):
     loss_scaler : LossScaler, default=None
         When a scaler is provided AMP (automated mixed precision) is applied. Use
         for example torch.cuda.amp.GradScaler
+    weights_name: str, default=None
+        Act as a flag + weights name (weights name should be inclusive of path). if it is none, then weights won't be saved.
 
     Notes
         ReprMeta is used to provide a __repr__ method for non-instantiated object.
@@ -118,6 +121,7 @@ class Config(metaclass=utils.ReprMeta):
     model = None
     channels_last = torch.contiguous_format
     loss_scaler = None
+    weights_name = None
 
 
 class Validator(ABC):
@@ -234,6 +238,7 @@ class Validator(ABC):
         self,
         train_loader: torch.utils.data.DataLoader,
         test_loader: torch.utils.data.DataLoader,
+        split_name: str
     ) -> None:
         """Main training loop
 
@@ -254,6 +259,19 @@ class Validator(ABC):
                     self.printer.print_train_test_validation(
                         train_metrics, test_metrics, epoch
                     )
+            if self.cf.weights_name:
+                # Get the current time
+                current_time = datetime.now()
+                # Format the time as a string
+                time_string = current_time.strftime('%H:%M:%S')   
+
+                folder_name = self.cf.weights_name
+                weights_name = self.cf.weights_name + '_' + split_name  + '_' + time_string + '.pth'
+                if os.path.exists(folder_name) == False:
+                    os.makedirs(folder_name)    
+                torch.save(self.model.state_dict(), weights_name)
+
+
 
     def train_one_epoch(self, epoch: int, dataloader: torch.utils.data.DataLoader):
         """Train model for single epoch
@@ -320,7 +338,7 @@ class Validator(ABC):
 
         Splits data according to the split and starts the evaluation process.
         """
-
+        
         # Load data
         train_data, train_labels, test_data, test_labels = self.split_data(
             df[self.split_column], input_data, labels, split_name
@@ -332,7 +350,7 @@ class Validator(ABC):
         self.setup_training()
 
         # Train and evaluation
-        self.train_model(train_loader, test_loader)
+        self.train_model(train_loader, test_loader, split_name)
         train_metrics = self.evaluate_model(train_loader)
         test_metrics, outputs_test = self.evaluate_model(test_loader, test=True)
         return train_metrics, test_metrics, outputs_test
@@ -480,9 +498,16 @@ class IndividualDatasetAUValidator(Validator):
     ) -> List[torch.tensor]:
         utils.set_random_seeds(seed_n)
         subject_names = df["subject"].unique()
-        labels = np.concatenate(
-            [np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1
-        )
+        if self.cf.action_units == None:
+            df['emotion_numeric'], emotion_labels = pd.factorize(df['emotion']) # assign a unique numeric to each string labels
+            labels = np.vstack(df['emotion_numeric'].values).flatten()
+        else:
+            labels = np.concatenate(
+                [np.expand_dims(df[au], 1) for au in self.cf.action_units], axis=1
+            )
+
+
+
         outputs_list = []
         for subject_name in subject_names:
             train_metrics, test_metrics, outputs_test = self.validate_split(
@@ -546,3 +571,74 @@ class MEGCValidator(Validator):
                 )
             )
         return outputs_list
+
+
+
+class IndividualDatasetEmotionValidator(Validator):
+    """Validator for single dataset Emotion"""
+
+    __doc__ += Validator.__doc__
+
+    def __init__(self, config: Config, verbose: bool = True):
+        super().__init__(config, split_column="subject")
+        self.verbose = verbose
+        self.disable_tqdm = False
+
+    def validate_n_times(
+        self, df: pd.DataFrame, input_data: InputData, n_times: int = 5
+    ) -> None:
+        self.verbose = False
+        emotion_results = []
+        subject_results = []
+        for n in tqdm(range(n_times)):
+            outputs_list = self.validate(df, input_data, seed_n=n + 45)
+            emotion_result, subject_result = self.printer.results_to_list(outputs_list, df)
+            emotion_results.append(emotion_result)
+            subject_results.append(subject_result)
+
+        aus = [i for i in self.cf.action_units]
+        subject_names = df[self.split_column].unique().tolist()
+        aus.append("Average")
+        subject_names.append("Average")
+        emotion_results = np.array(emotion_results)
+        subject_results = np.array(subject_results)
+        for i in range(len(self.cf.evaluation_fn)):
+            if len(self.cf.evaluation_fn) > 1:
+                print(self.printer.metric_name(self.cf.evaluation_fn[i]))
+            emotion_result = self.printer.list_to_latex(list(emotion_results[:, i].mean(axis=0)))
+            subject_result = self.printer.list_to_latex(
+                list(subject_results[:, i].mean(axis=0))
+            )
+            print("AUS:", aus)
+            print(emotion_result)
+            print("\nSubjects: ", subject_names)
+            print(subject_result)
+
+    def validate(
+        self, df: pd.DataFrame, input_data: InputData, seed_n: int = 1
+    ) -> List[torch.tensor]:
+        utils.set_random_seeds(seed_n)
+        subject_names = df["subject"].unique()
+        df['emotion_numeric'], emotion_labels = pd.factorize(df['emotion']) # assign a unique numeric to each string labels
+        labels = np.vstack(df['emotion_numeric'].values).flatten()
+
+        outputs_list = []
+        for subject_name in subject_names:
+            train_metrics, test_metrics, outputs_test = self.validate_split(
+                df, input_data, labels, subject_name
+            )
+            outputs_list.append(outputs_test)
+            if self.verbose:
+                self.printer.print_train_test_evaluation(
+                    train_metrics, test_metrics, subject_name, outputs_test.shape[0]
+                )
+
+        # Calculate total f1-scores
+        predictions = torch.cat(outputs_list)
+        metrics = self.evaluation_fn(labels, predictions)
+        if self.verbose:
+            self.printer.print_test_validation(metrics)
+        return outputs_list
+    
+
+    
